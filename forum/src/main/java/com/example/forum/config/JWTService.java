@@ -1,5 +1,6 @@
 package com.example.forum.config;
 
+import com.example.forum.entity.UserEntity;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -49,7 +50,7 @@ public class JWTService {
                 .getBody();
     }
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserEntity userDetails) {
         return generateToken( new HashMap<>(), userDetails);
     }
 

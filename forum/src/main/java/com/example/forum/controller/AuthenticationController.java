@@ -5,6 +5,7 @@ import com.example.forum.auth.AuthenticationResponse;
 import com.example.forum.auth.AuthenticationService;
 import com.example.forum.dto.AuthenticationRequest;
 import com.example.forum.dto.RegisterRequest;
+import com.example.forum.dto.VerifyEmailRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +22,19 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register (
+    public ResponseEntity<String> register (
             @Valid @RequestBody RegisterRequest request
     ){
         return ResponseEntity.ok(authenticationService.register(request));
     }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail (@Valid
+            @RequestBody VerifyEmailRequest request
+    ) {
+        return ResponseEntity.ok(authenticationService.verifyCode(request.getEmail(), request.getCode()));
+    }
+
 
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate (

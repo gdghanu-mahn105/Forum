@@ -5,11 +5,16 @@ import com.example.forum.dto.AuthenticationRequest;
 import com.example.forum.dto.RegisterRequest;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.UserRepository;
+import com.example.forum.service.VerificationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,8 +24,9 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final JWTService jwtService;
     private final AuthenticationManager authManager;
+    private final VerificationService verificationService;
 
-    public AuthenticationResponse register(RegisterRequest request) {
+    public String register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email was used");
@@ -31,29 +37,48 @@ public class AuthenticationService {
                 .email(request.getEmail())
                 .userPassword(passwordEncoder.encode(request.getPassword()))
                 .roleType(UserEntity.roleType.USER)
+                .isVerified(false)
                 .build();
         userRepository.save(user);
-        var JWTtoken = jwtService.generateToken(user);
-        return AuthenticationResponse.builder()
-                .Token(JWTtoken)
-                .build();
 
+        verificationService.sendVerificationEmail(user);
+
+//        var JWTtoken = jwtService.generateToken(user);
+//        return AuthenticationResponse.builder()
+//                .Token(JWTtoken)
+//                .build();
+        return "Registration successful! Please check your email for the verification code.";
+    }
+
+    public String verifyCode(String email, String code) {
+        return verificationService.verifyToken(email, code); // gọi lại service đã viết
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
 
-        var user= userRepository.findByEmail(request.getEmail()).orElseThrow();
+        var user = userRepository.findByEmail(request.getEmail())
+                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        var JWToken = jwtService.generateToken(user);
+        try {
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
 
-        return AuthenticationResponse.builder()
-                .Token(JWToken)
-                .build();
+            var JWToken = jwtService.generateToken(user);
+            return AuthenticationResponse.builder()
+                    .Token(JWToken)
+                    .build();
+
+        } catch (BadCredentialsException ex) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
+        } catch (DisabledException ex){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Your account is not verified");
+        } catch (LockedException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is locked");
+        }
+
     }
 }
