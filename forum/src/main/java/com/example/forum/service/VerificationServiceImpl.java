@@ -19,23 +19,55 @@ public class VerificationServiceImpl implements VerificationService {
     private final JavaMailSender javaMailSender;
     private final UserRepository userRepository;
 
+
+    public void sendMail(String email, String token) {
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(email);
+        mail.setSubject("Verification Code");
+        mail.setText("Your verification code: "+ token);
+        javaMailSender.send(mail);
+    }
+
     @Override
     public void sendVerificationEmail(UserEntity userEntity) {
+
         String token = String.format("%06d", new Random().nextInt(1000000));
         UserVerificationToken userVerificationToken = new UserVerificationToken();
         userVerificationToken.setToken(token);
         userVerificationToken.setUser(userEntity);
         userVerificationToken.setExpiredDate(LocalDateTime.now().plusMinutes(15));
+        userVerificationToken.setSendTime(LocalDateTime.now());
+        userVerificationToken.setSentCount(userVerificationToken.getSentCount()+1);
         verificationRepo.save(userVerificationToken);
 
-        System.out.println("Sending email from: " + javaMailSender);
-        System.out.println("Sending email to: " + userEntity.getEmail());
+        sendMail(userEntity.getEmail(),token);
+    }
 
-        SimpleMailMessage mail = new SimpleMailMessage();
-        mail.setTo(userEntity.getEmail());
-        mail.setSubject("Verification code");
-        mail.setText("Your verification code: "+ token);
-        javaMailSender.send(mail);
+
+    @Override
+    public String resendVerificationCode(String email) {
+
+        String newToken= String.format("%06d", new Random().nextInt(1000000));
+
+        UserVerificationToken user = verificationRepo.findByUser_Email(email)
+                .orElseThrow(()-> new IllegalArgumentException("User not found"));
+
+        if(user.getSentCount()>=5){
+            throw new IllegalArgumentException("too many send action!");
+        }
+        if(!user.getSendTime().plusMinutes(1).isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("you can resent after 60s");
+        }
+        user.setToken(newToken);
+        user.setExpiredDate(LocalDateTime.now().plusMinutes(15));
+        user.setSendTime(LocalDateTime.now());
+        user.setSentCount(user.getSentCount()+1);
+        verificationRepo.save(user);
+
+        sendMail(email,newToken);
+
+        return"Resent!";
+
     }
 
     @Override

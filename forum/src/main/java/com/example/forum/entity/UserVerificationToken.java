@@ -2,6 +2,7 @@ package com.example.forum.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -23,4 +24,9 @@ public class UserVerificationToken {
     private UserEntity user;
 
     private LocalDateTime expiredDate;
+
+
+    private LocalDateTime sendTime;
+
+    private int sentCount;
 }

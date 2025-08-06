@@ -7,6 +7,5 @@ public interface VerificationService {
 
     String verifyToken(String email, String inputToken);
 
-
-
+    String resendVerificationCode(String email);
 }
