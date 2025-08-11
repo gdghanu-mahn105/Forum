@@ -32,6 +32,10 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Email was used");
         }
 
+        if(request.getPassword()==null){
+            throw new IllegalArgumentException("Password must be filled");
+        }
+
         var user= UserEntity.builder()
                 .userName(request.getUserName())
                 .email(request.getEmail())

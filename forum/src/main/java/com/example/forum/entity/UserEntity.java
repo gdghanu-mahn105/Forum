@@ -29,7 +29,7 @@ public class UserEntity implements UserDetails {
     @Column(name = "email", unique = true)
     private String email;
 
-    @Column(name = "user_password")
+    @Column(name = "user_password", nullable = true)
     private String userPassword;
 
     @Column(name = "user_name")
@@ -52,6 +52,9 @@ public class UserEntity implements UserDetails {
 
     @Column(name = "is_verified")
     private Boolean isVerified;
+
+    private String provider;
+    private String providerId;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
