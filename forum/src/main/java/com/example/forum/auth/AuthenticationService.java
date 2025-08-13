@@ -3,10 +3,13 @@ package com.example.forum.auth;
 import com.example.forum.config.JWTService;
 import com.example.forum.dto.AuthenticationRequest;
 import com.example.forum.dto.RegisterRequest;
+import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
+import com.example.forum.repository.RoleRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.service.VerificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class AuthenticationService {
     private final JWTService jwtService;
     private final AuthenticationManager authManager;
     private final VerificationService verificationService;
+    private final RoleRepository roleRepository;
 
     public String register(RegisterRequest request) {
 
@@ -36,21 +41,21 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Password must be filled");
         }
 
+        Role userRole = roleRepository.findByName("ROLE_USER")
+                .orElseThrow(()-> new RuntimeException("role not found"));
+
+
         var user= UserEntity.builder()
                 .userName(request.getUserName())
                 .email(request.getEmail())
                 .userPassword(passwordEncoder.encode(request.getPassword()))
-                .roleType(UserEntity.roleType.USER)
+                .roles(Set.of(userRole))
                 .isVerified(false)
                 .build();
         userRepository.save(user);
 
         verificationService.sendVerificationEmail(user);
 
-//        var JWTtoken = jwtService.generateToken(user);
-//        return AuthenticationResponse.builder()
-//                .Token(JWTtoken)
-//                .build();
         return "Registration successful! Please check your email for the verification code.";
     }
 

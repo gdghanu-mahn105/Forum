@@ -1,6 +1,8 @@
 package com.example.forum.auth;
 
+import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
+import com.example.forum.repository.RoleRepository;
 import com.example.forum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -10,12 +12,14 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class CustomOidc2UserService extends OidcUserService {
 
     private final UserRepository userRepo;
+    private final RoleRepository roleRepo;
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
@@ -33,6 +37,9 @@ public class CustomOidc2UserService extends OidcUserService {
         Optional<UserEntity> optionalUser = userRepo.findByProviderAndProviderId(provider,providerId);
         // UserOauth login, save user information
         if(optionalUser.isEmpty()) {
+            Role userRole = roleRepo.findByName("ROLE_USER")
+                    .orElseThrow(()-> new RuntimeException("role not found"));
+
             UserEntity newUser = new UserEntity();
             newUser.setUserName(name);
             newUser.setEmail(email);
@@ -41,7 +48,7 @@ public class CustomOidc2UserService extends OidcUserService {
             newUser.setProvider(provider);
             newUser.setProviderId(providerId);
             newUser.setAvatarUrl(avatarUrl);
-            newUser.setRoleType(UserEntity.roleType.USER);
+            newUser.setRoles(Set.of(userRole));
             userRepo.save(newUser);
             System.out.println("Saved successfully");
         } else{

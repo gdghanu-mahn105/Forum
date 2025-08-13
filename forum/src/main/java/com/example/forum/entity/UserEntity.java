@@ -12,7 +12,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -38,14 +40,13 @@ public class UserEntity implements UserDetails {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    @Column(name = "role_type")
-    @Enumerated(EnumType.STRING)
-    private roleType roleType;
-
-    public enum roleType {
-        USER,
-        ADMIN
-    }
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
     @Column(name = "is_deleted")
     private Boolean isDeleted;
@@ -77,7 +78,11 @@ public class UserEntity implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(roleType.name()));
+        return roles
+                .stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .toList()
+                ;
     }
 
     @Override

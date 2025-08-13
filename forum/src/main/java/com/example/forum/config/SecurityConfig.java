@@ -29,18 +29,23 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/forum/auth/**", "/forum/home","/login/oauth2/**")
+                        .requestMatchers(
+                                "/forum/auth/**"
+                                , "/forum/home"
+                                ,"/login/oauth2/**")
                         .permitAll()
+                        .requestMatchers("/forum/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/forum/user/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth -> oauth
-                        .userInfoEndpoint(user ->
-                                user.oidcUserService(customOidc2UserService)
-                        )
-                        .successHandler(customOAuthSuccessHandler)
-                )
+//                .oauth2Login(oauth -> oauth
+//                        .userInfoEndpoint(user ->
+//                                user.oidcUserService(customOidc2UserService)
+//                        )
+//                        .successHandler(customOAuthSuccessHandler)
+//                )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/forum/home").permitAll()

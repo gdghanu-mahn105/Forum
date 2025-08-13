@@ -7,6 +7,7 @@ import com.example.forum.dto.AuthenticationRequest;
 import com.example.forum.dto.RegisterRequest;
 import com.example.forum.dto.ResendEmailRequest;
 import com.example.forum.dto.VerifyEmailRequest;
+import com.example.forum.service.AdminService;
 import com.example.forum.service.VerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
     private final VerificationService verificationService;
+    private final AdminService adminService;
 
     @PostMapping("/register")
     public ResponseEntity<String> register (
@@ -49,4 +51,13 @@ public class AuthenticationController {
     ) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
+
+    @PostMapping("/createAdmin")
+    public ResponseEntity<AuthenticationResponse> createAdmin (
+            @Valid @RequestBody RegisterRequest request
+    ) {
+        return ResponseEntity.ok(adminService.createAdmin(request));
+    }
+
+
 }
