@@ -1,8 +1,8 @@
 package com.example.forum.service;
 
-import com.example.forum.auth.AuthenticationResponse;
-import com.example.forum.config.JWTService;
-import com.example.forum.dto.RegisterRequest;
+import com.example.forum.dto.response.AuthenticationResponse;
+import com.example.forum.security.JWTService;
+import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;

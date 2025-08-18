@@ -1,4 +1,4 @@
-package com.example.forum.auth;
+package com.example.forum.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

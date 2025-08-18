@@ -1,23 +1,21 @@
 package com.example.forum.auth;
 
-import com.example.forum.config.JWTService;
-import com.example.forum.dto.AuthenticationRequest;
-import com.example.forum.dto.RegisterRequest;
+import com.example.forum.dto.response.AuthenticationResponse;
+import com.example.forum.security.JWTService;
+import com.example.forum.dto.request.AuthenticationRequest;
+import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.service.VerificationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
 import java.util.Set;
 
 @Service
