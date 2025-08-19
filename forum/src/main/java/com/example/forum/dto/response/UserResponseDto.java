@@ -22,6 +22,4 @@ public class UserResponseDto {
     private Set<Role> roles;
     private Boolean isVerified;
     private LocalDateTime createdAt;
-
-
 }

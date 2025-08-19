@@ -21,7 +21,7 @@ public class PostEntity {
 
     @ManyToOne
     @JoinColumn(name = "creator_id", nullable = false)
-    private UserEntity creatorId;
+    private UserEntity creator;
 
     @ManyToMany
     @JoinTable(
@@ -30,6 +30,9 @@ public class PostEntity {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
+
+    @Column(name = "post_title")
+    private String postTitle;
 
     @Column(name = "post_content")
     private String postContent;
@@ -48,6 +51,15 @@ public class PostEntity {
 
     @Column(name = "counted_views")
     private Long countedViews;
+
+    @ManyToMany
+    @JoinTable(name = "post_tags",
+    joinColumns= @JoinColumn(name = "post_id"),
+    inverseJoinColumns = @JoinColumn(name = "tag_id"),
+    uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "tag_id"})
+    )
+    private Set<Tag> tags = new HashSet<>();
+
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
