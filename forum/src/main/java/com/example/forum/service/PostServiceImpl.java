@@ -1,10 +1,7 @@
 package com.example.forum.service;
 
 import com.example.forum.dto.request.CreatePostRequest;
-import com.example.forum.dto.response.CategoryDto;
-import com.example.forum.dto.response.PostResponseDto;
-import com.example.forum.dto.response.TagDto;
-import com.example.forum.dto.response.UserSummaryDto;
+import com.example.forum.dto.response.*;
 import com.example.forum.entity.Category;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.Tag;
@@ -15,9 +12,14 @@ import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.TagRepository;
 import com.example.forum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -97,5 +99,39 @@ public class PostServiceImpl implements PostService {
                 .tagId(tag.getTagId())
                 .tagName(tag.getTagName())
                 .build();
+    }
+
+
+    @Override
+    public PostResponseDto getPost(Long postId) {
+        PostEntity post= postRepo.findById(postId)
+                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+        return mapToPostResponseDto(post);
+    }
+
+    @Override
+    public PagedResponse<PostResponseDto> getPosts(int page, int size, String sortBy, String sortDirect, String keyword) {
+
+        Sort sort = sortDirect.equalsIgnoreCase("asc")
+                ? Sort.by(Sort.Direction.ASC, sortBy)
+                : Sort.by(Sort.Direction.DESC, sortBy);
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        if (keyword == null) {
+            keyword = "";
+        }
+
+        Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCase(keyword, pageable);
+        List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(this::mapToPostResponseDto).toList();
+
+        return new PagedResponse<>(
+                postListContent,
+                postEntitiesPage.getNumber(),
+                postEntitiesPage.getSize(),
+                postEntitiesPage.getTotalElements(),
+                postEntitiesPage.getTotalPages(),
+                postEntitiesPage.isLast()
+        );
     }
 }

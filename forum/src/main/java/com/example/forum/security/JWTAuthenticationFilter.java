@@ -40,7 +40,8 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if(authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request,response);
+//            filterChain.doFilter(request,response);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,"Invalid authorization header");
             return;
         }
 

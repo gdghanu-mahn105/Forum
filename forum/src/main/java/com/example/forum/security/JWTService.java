@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,9 @@ import java.util.function.Function;
 public class JWTService {
     private final UserRepository userRepository;
 
-    public static String SECRET_KEY ="6ebfb29c41131ca794e51b7db9e5e0017020e07996f80cee1c14849507cccb81";
+    @Value("${jwt.secret}")
+    private String SECRET_KEY;
+
     private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24;
     Date expirationDate = new Date(System.currentTimeMillis() + EXPIRATION_TIME);
 
