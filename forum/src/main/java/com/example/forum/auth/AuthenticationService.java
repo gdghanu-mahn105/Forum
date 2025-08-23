@@ -1,5 +1,6 @@
 package com.example.forum.auth;
 
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.AuthenticationResponse;
 import com.example.forum.security.JWTService;
 import com.example.forum.dto.request.AuthenticationRequest;
@@ -29,7 +30,7 @@ public class AuthenticationService {
     private final VerificationService verificationService;
     private final RoleRepository roleRepository;
 
-    public String register(RegisterRequest request) {
+    public ApiResponse<?> register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email was used");
@@ -47,6 +48,7 @@ public class AuthenticationService {
                 .userName(request.getUserName())
                 .email(request.getEmail())
                 .userPassword(passwordEncoder.encode(request.getPassword()))
+                .avatarUrl("https://cdn-icons-png.flaticon.com/512/9815/9815472.png") // default avatar url
                 .roles(Set.of(userRole))
                 .isVerified(false)
                 .build();
@@ -54,16 +56,23 @@ public class AuthenticationService {
 
         verificationService.sendVerificationEmail(user);
 
-        return "Registration successful! Please check your email for the verification code.";
+        return ApiResponse.builder()
+                .success(true)
+                .message("Please verify email!")
+                .build();
     }
 
-    public String verifyCode(String email, String code) {
-        return verificationService.verifyToken(email, code); // gọi lại service đã viết
+    public ApiResponse<?> verifyCode(String email, String code) {
+        verificationService.verifyToken(email, code);
+        return ApiResponse.builder()
+                .success(true)
+                .message("Your account is verified")
+                .build();
     }
 
 
 
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+    public ApiResponse<?> authenticate(AuthenticationRequest request) {
 
         var user = userRepository.findByEmail(request.getEmail())
                  .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -77,10 +86,14 @@ public class AuthenticationService {
             );
 
             var JWToken = jwtService.generateToken(user);
-            return AuthenticationResponse.builder()
+            AuthenticationResponse response=  AuthenticationResponse.builder()
                     .Token(JWToken)
                     .build();
-
+            return ApiResponse.builder()
+                    .success(true)
+                    .message("authenticated")
+                    .Data(response)
+                    .build();
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
         } catch (DisabledException ex){

@@ -24,21 +24,21 @@ public class AuthenticationController {
     private final AdminService adminService;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register (
+    public ResponseEntity<?> register (
             @Valid @RequestBody RegisterRequest request
     ){
         return ResponseEntity.ok(authenticationService.register(request));
     }
 
     @PostMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail (@Valid
+    public ResponseEntity<?> verifyEmail (@Valid
             @RequestBody VerifyEmailRequest request
     ) {
         return ResponseEntity.ok(authenticationService.verifyCode(request.getEmail(), request.getCode()));
     }
 
     @PatchMapping("/resend-verification-code")
-    public ResponseEntity<String> resendVerificationCode(
+    public ResponseEntity<?> resendVerificationCode(
             @Valid @RequestBody ResendEmailRequest request
             ){
         return ResponseEntity.ok(verificationService.resendVerificationCode(request.getEmail()));
@@ -46,14 +46,14 @@ public class AuthenticationController {
 
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate (
+    public ResponseEntity<?> authenticate (
             @Valid @RequestBody AuthenticationRequest request
     ) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 
     @PostMapping("/createAdmin")
-    public ResponseEntity<AuthenticationResponse> createAdmin (
+    public ResponseEntity<?> createAdmin (
             @Valid @RequestBody RegisterRequest request
     ) {
         return ResponseEntity.ok(adminService.createAdmin(request));

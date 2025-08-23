@@ -6,7 +6,6 @@ import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +31,7 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<UserResponseDto>> getUsers(
+    public ResponseEntity<?> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -57,7 +56,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDto> updateUser(
+    public ResponseEntity<?> updateUser(
             @PathVariable Long id,
             @RequestBody UserUpdateRequest request
     ) {
@@ -70,7 +69,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> softDeleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> softDeleteUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.softDeleteUser(id));
     }
 }

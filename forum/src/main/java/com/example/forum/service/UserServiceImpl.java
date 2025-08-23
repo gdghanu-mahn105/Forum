@@ -2,6 +2,8 @@ package com.example.forum.service;
 
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
+import com.example.forum.dto.response.ApiResponse;
+import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
@@ -65,7 +67,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public Page<UserResponseDto> getUsers(int page, int size, String sortBy,String sortDirect, String keyword) {
+    public PagedResponse<UserResponseDto> getUsers(int page, int size, String sortBy, String sortDirect, String keyword) {
 
         Sort sort = sortDirect.equalsIgnoreCase("asc")
                 ? Sort.by(ASC, sortBy)
@@ -76,40 +78,60 @@ public class UserServiceImpl implements UserService{
 
         if (keyword == null) keyword = "";
 
-        Page<UserEntity> users = userRepository.findByIsDeletedFalseAndUserNameContainingIgnoreCase(keyword, pageable);
-        return users.map(this::mapToUserResponseDto);
+        Page<UserEntity> usersPage = userRepository.findByIsDeletedFalseAndUserNameContainingIgnoreCase(keyword, pageable);
+        List<UserResponseDto> UserPageContent= usersPage.getContent().stream().map(this::mapToUserResponseDto).toList();
+        return new PagedResponse<>(
+                UserPageContent,
+                usersPage.getNumber(),
+                usersPage.getSize(),
+                usersPage.getTotalElements(),
+                usersPage.getTotalPages(),
+                usersPage.isLast()
+        );
     }
 
     @Override
     public UserResponseDto updateUser(Long id, UserUpdateRequest request) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found!"));
-        user.setUserName(request.getUsername());
-        user.setAvatarUrl(request.getAvatarUrl());
+
+        if(request.getAvatarUrl()!= null && !request.getAvatarUrl().isBlank()){
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+        if (request.getUsername()!=null && !request.getUsername().isBlank()) {
+            user.setUserName(request.getUsername());
+        }
+
         userRepository.save(user);
 
         return mapToUserResponseDto(user);
     }
 
     @Override
-    public String softDeleteUser(Long id) {
+    public ApiResponse<?> softDeleteUser(Long id) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(()-> new IllegalArgumentException("User not found!"));
         user.setIsDeleted(true);
         userRepository.save(user);
-        return "Delete user with id " + id + "SUCCESSFULLY";
+        return ApiResponse.builder()
+                .success(true)
+                .message("User is deleted")
+                .build();
     }
 
     @Override
-    public String hardDeleteUser(Long id) {
+    public ApiResponse<?> hardDeleteUser(Long id) {
         UserEntity user= userRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
         userRepository.delete(user);
-        return "Permanently deleted user!";
+        return ApiResponse.builder()
+                .success(true)
+                .message("User is permanently deleted")
+                .build();
     }
 
     @Override
-    public String changePassword(Long id, ChangePasswordRequest request) {
+    public ApiResponse<?> changePassword(Long id, ChangePasswordRequest request) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
         if(!passwordEncoder.matches(request.getOldPassword(), user.getUserPassword())) {
@@ -117,6 +139,9 @@ public class UserServiceImpl implements UserService{
         }
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        return "Password is successfully changed!";
+        return ApiResponse.builder()
+                .success(true)
+                .message("Password is successfully changed!")
+                .build();
     }
 }

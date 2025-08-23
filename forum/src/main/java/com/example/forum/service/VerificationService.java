@@ -1,11 +1,12 @@
 package com.example.forum.service;
 
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.entity.UserEntity;
 
 public interface VerificationService {
     void sendVerificationEmail(UserEntity user);
 
-    String verifyToken(String email, String inputToken);
+    void verifyToken(String email, String inputToken);
 
-    String resendVerificationCode(String email);
+    ApiResponse<?> resendVerificationCode(String email);
 }

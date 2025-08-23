@@ -6,9 +6,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
-    Page<PostEntity> findByPostTitleContainingIgnoreCase(String keyword, Pageable pageable);
+    Optional<PostEntity> findByPostId(Long id);
+
+    Page<PostEntity> findByPostTitleContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
+
 
 }

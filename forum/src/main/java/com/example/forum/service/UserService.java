@@ -2,6 +2,8 @@ package com.example.forum.service;
 
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
+import com.example.forum.dto.response.ApiResponse;
+import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import org.springframework.data.domain.Page;
@@ -19,13 +21,13 @@ public interface UserService {
 
 
     @PreAuthorize("hasRole('ADMIN')")
-    String softDeleteUser(Long id);
+    ApiResponse<?> softDeleteUser(Long id);
 
     @PreAuthorize("hasRole('ADMIN')")
     List<UserResponseDto> getAllUsers();
 
     @PreAuthorize("hasRole('ADMIN')")
-    Page<UserResponseDto> getUsers(
+    PagedResponse<UserResponseDto> getUsers(
             int page,
             int size,
             String sortBy,
@@ -37,8 +39,8 @@ public interface UserService {
     UserResponseDto updateUser(Long id, UserUpdateRequest request);
 
     @PreAuthorize("hasRole('ADMIN')")
-    String hardDeleteUser(Long id);
+    ApiResponse<?> hardDeleteUser(Long id);
 
     @PreAuthorize("hasRole('USER') and #id==authentication.principal.userId")
-    String changePassword(Long id, ChangePasswordRequest request);
+    ApiResponse<?> changePassword(Long id, ChangePasswordRequest request);
 }

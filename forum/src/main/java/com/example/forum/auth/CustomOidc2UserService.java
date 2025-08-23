@@ -23,7 +23,6 @@ public class CustomOidc2UserService extends OidcUserService {
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        System.out.println("CustomOAuth2UserService.loadUser CALLED");
 
         OidcUser oidcUser= super.loadUser(userRequest);
 
@@ -50,9 +49,7 @@ public class CustomOidc2UserService extends OidcUserService {
             newUser.setAvatarUrl(avatarUrl);
             newUser.setRoles(Set.of(userRole));
             userRepo.save(newUser);
-            System.out.println("Saved successfully");
         } else{
-            System.out.println("người dùng đã tồn tại");
             return oidcUser;
         }
         UserEntity user = userRepo.findByEmail(email)

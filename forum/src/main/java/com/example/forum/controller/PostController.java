@@ -1,6 +1,7 @@
 package com.example.forum.controller;
 
 import com.example.forum.dto.request.CreatePostRequest;
+import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.PostResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.PostService;
@@ -43,5 +44,23 @@ public class PostController {
             @RequestParam(defaultValue = "") String keyword
     ) {
         return ResponseEntity.ok(postService.getPosts(page, size, sortBy, sortDirect, keyword));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updatePost(
+            @PathVariable Long id,
+            @RequestBody UpdatePostRequest request
+            ){
+        return ResponseEntity.ok(postService.updatePost(id, request));
+    }
+
+    @PatchMapping("/{id}/soft-delete")
+    public ResponseEntity<?> softDeletePost(@PathVariable Long id){
+        return ResponseEntity.ok(postService.softDeletePost(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> hardDeletePost(@PathVariable Long id){
+        return ResponseEntity.ok(postService.hardDeletePost(id));
     }
 }

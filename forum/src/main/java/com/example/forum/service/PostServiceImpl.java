@@ -1,6 +1,7 @@
 package com.example.forum.service;
 
 import com.example.forum.dto.request.CreatePostRequest;
+import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.*;
 import com.example.forum.entity.Category;
 import com.example.forum.entity.PostEntity;
@@ -11,11 +12,14 @@ import com.example.forum.repository.CategoryRepository;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.TagRepository;
 import com.example.forum.repository.UserRepository;
+import com.example.forum.security.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -31,6 +35,7 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepo;
     private final CategoryRepository categoryRepo;
     private final TagRepository tagRepo;
+    private final SecurityService securityService;
 
     @Override
     public PostResponseDto createPost(CreatePostRequest request, Long userId) {
@@ -122,7 +127,7 @@ public class PostServiceImpl implements PostService {
             keyword = "";
         }
 
-        Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCase(keyword, pageable);
+        Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(this::mapToPostResponseDto).toList();
 
         return new PagedResponse<>(
@@ -133,5 +138,64 @@ public class PostServiceImpl implements PostService {
                 postEntitiesPage.getTotalPages(),
                 postEntitiesPage.isLast()
         );
+    }
+
+    @Override
+    public PostResponseDto updatePost(Long postId, UpdatePostRequest request) {
+
+        PostEntity post = postRepo.findByPostId(postId)
+                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+
+        UserEntity currentUser = securityService.getCurrentUser();  // dùng service
+        Long currentUserId = currentUser.getUserId();
+
+        if(!post.getCreator().getUserId().equals(currentUserId)) {
+            throw new AccessDeniedException("You are not have permission to update this post");
+        }
+
+        if(request.getTitle() !=null && !request.getTitle().isBlank()) {
+            post.setPostTitle(request.getTitle());
+        }
+        if(request.getContent() !=null && !request.getContent().isBlank()) {
+            post.setPostContent(request.getContent());
+        }
+
+        if(request.getTagSet()!= null) {
+            Set<Tag> tags = new HashSet<>(tagRepo.findAllById(request.getTagSet()));
+            post.setTags(tags);
+        }
+        postRepo.save(post);
+
+        return mapToPostResponseDto(post);
+    }
+
+
+
+    @Override
+    public ApiResponse<?> softDeletePost(Long id) {
+        PostEntity post= postRepo.findByPostId(id)
+                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+
+        UserEntity currentUser = securityService.getCurrentUser();  // dùng service
+        Long currentUserId = currentUser.getUserId();
+
+        if(!currentUserId.equals(post.getCreator().getUserId())) {
+            throw new AccessDeniedException("You are not have permission to delete this post");
+        }
+        post.setIsDeleted(true);
+        postRepo.save(post);
+        return ApiResponse.builder()
+                .success(true)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<?> hardDeletePost(Long id) {
+        PostEntity post= postRepo.findByPostId(id)
+                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+        postRepo.delete(post);
+        return ApiResponse.builder()
+                .success(true)
+                .build();
     }
 }

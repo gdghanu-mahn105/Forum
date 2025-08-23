@@ -1,5 +1,6 @@
 package com.example.forum.service;
 
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.UserVerificationToken;
 import com.example.forum.repository.UserRepository;
@@ -45,7 +46,7 @@ public class VerificationServiceImpl implements VerificationService {
 
 
     @Override
-    public String resendVerificationCode(String email) {
+    public ApiResponse<?> resendVerificationCode(String email) {
 
         String newToken= String.format("%06d", new Random().nextInt(1000000));
 
@@ -66,12 +67,15 @@ public class VerificationServiceImpl implements VerificationService {
 
         sendMail(email,newToken);
 
-        return"Resent!";
+        return ApiResponse.builder()
+                .success(true)
+                .message("Resent!")
+                .build();
 
     }
 
     @Override
-    public String verifyToken (String email, String inputToken) {
+    public void verifyToken (String email, String inputToken) {
         UserVerificationToken vt= verificationRepo.findByUser_Email(email)
                 .orElseThrow(()->new IllegalArgumentException("verification code not found"));
 
@@ -87,8 +91,5 @@ public class VerificationServiceImpl implements VerificationService {
         user.setIsVerified(true);
         userRepository.save(user);
         verificationRepo.delete(vt);
-
-        return"Your account is successfully activated";
-
     }
 }
