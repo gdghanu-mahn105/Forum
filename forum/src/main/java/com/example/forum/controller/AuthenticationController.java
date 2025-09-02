@@ -11,6 +11,7 @@ import com.example.forum.service.AdminService;
 import com.example.forum.service.VerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,7 @@ public class AuthenticationController {
     public ResponseEntity<?> register (
             @Valid @RequestBody RegisterRequest request
     ){
-        return ResponseEntity.ok(authenticationService.register(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.register(request));
     }
 
     @PostMapping("/verify-email")
@@ -45,7 +46,7 @@ public class AuthenticationController {
     }
 
 
-    @PostMapping("/authenticate")
+    @PostMapping("/login")
     public ResponseEntity<?> authenticate (
             @Valid @RequestBody AuthenticationRequest request
     ) {

@@ -1,10 +1,10 @@
 package com.example.forum.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 @Data
 @Builder
+@AllArgsConstructor
 public class UserSummaryDto {
     private Long userId;
     private String username;

@@ -34,18 +34,16 @@ public class CustomOAuthSuccessHandler implements AuthenticationSuccessHandler {
             String email = oAuth2User.getAttribute("email");
             String name = oAuth2User.getAttribute("name");
             String sub = oAuth2User.getName();
-            System.out.println("OAuth2User name(): " + name);
-            System.out.println("OAuth2User email: " +email);
-            System.out.println(oAuth2User.getAttributes());
 
             UserEntity user = userRepository.findByProviderAndProviderId(provider, sub).orElseThrow(() -> new RuntimeException("User not found"));
 
             String token = jwtService.generateToken(user);
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{\"token\": \"" + token + "\"}");
-
+//            response.setContentType("application/json");
+//            response.setCharacterEncoding("UTF-8");
+//            response.getWriter().write("{\"token\": \"" + token + "\"}");
+            String redirectUrl = "http://localhost:3000/oauth2/success?token=" + token;
+            response.sendRedirect(redirectUrl);
         }
     }
 
