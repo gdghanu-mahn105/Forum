@@ -1,5 +1,6 @@
 package com.example.forum.service;
 
+import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
@@ -10,8 +11,8 @@ import com.example.forum.repository.VoteRepository;
 import com.example.forum.security.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -72,5 +73,15 @@ public class VoteServiceIpml implements VoteService{
                 post.getUpvotes() - post.getDownvotes(),
                 value
         );
+    }
+
+    @Override
+    public List<VoteProjection> findVoteOfPost(Long postId, int voteValue) {
+        PostEntity post = postRepository.findByPostId(postId)
+                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+        if(voteValue !=1 && voteValue !=-1) {
+            throw new IllegalArgumentException("the value must be 1 for upvote and -1 for downvote");
+        }
+        return voteRepository.findVotesOfPost(postId,voteValue);
     }
 }

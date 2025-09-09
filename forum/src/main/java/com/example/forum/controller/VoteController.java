@@ -18,4 +18,12 @@ public class VoteController {
     ){
         return ResponseEntity.ok(voteService.votePost(post_id,value));
     }
+
+    @GetMapping("/{post_id}/vote")
+    ResponseEntity<?> getVoteByVoteType (
+            @PathVariable Long post_id,
+            @RequestParam int voteValue
+    ) {
+        return ResponseEntity.ok(voteService.findVoteOfPost(post_id, voteValue));
+    }
 }
