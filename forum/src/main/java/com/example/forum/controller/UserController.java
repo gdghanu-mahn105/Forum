@@ -55,7 +55,7 @@ public class UserController {
         return ResponseEntity.ok(userService.changePassword(id,request));
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}/update")
     public ResponseEntity<?> updateUser(
             @PathVariable Long id,
             @RequestBody UserUpdateRequest request
@@ -63,12 +63,12 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    @PatchMapping("/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> hardDeleteUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.hardDeleteUser(id));
     }
 
-    @DeleteMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<?> softDeleteUser(@PathVariable Long id) {
         return ResponseEntity.ok(userService.softDeleteUser(id));
     }

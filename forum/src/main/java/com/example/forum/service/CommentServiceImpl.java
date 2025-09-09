@@ -156,6 +156,34 @@ public class CommentServiceImpl implements CommentService {
                 .build();
     }
 
+    @Override
+    public List<CommentDto> getListOfCommentAndCountReplyComment(Long postId, String parentPath, Long parentId) {
+        PostEntity post = postRepository.findByPostId(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found!"));
+
+        List<CommentProjection> rows = commentRepository.findCommentsWithReplyCountByPostId(postId, parentPath, parentId);
+
+        return rows.stream()
+                .map(row -> CommentDto.builder()
+                        .commentId(row.getCommentId())
+                        .commentContent(row.getCommentContent())
+                        .commentPath(row.getCommentPath())
+                        .isDeleted(row.getIsDeleted())
+                        .createdAt(row.getCreatedAt())
+                        .updatedAt(row.getUpdatedAt())
+                        .userInfor(new UserSummaryDto(
+                                row.getUserId(),
+                                row.getUsername(),
+                                row.getEmail(),
+                                row.getAvatarUrl()
+                        ))
+                        .post(new CommentDto.PostInfo(post.getPostId(), post.getPostTitle()))
+                        .replyCount(row.getReplyCount())//reply count
+                        .build()
+                )
+                .toList();
+    }
+
 
     private CommentDto mapToCommentDto(CommentEntity comment){
         return CommentDto.builder()

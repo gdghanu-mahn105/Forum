@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService{
         return UserResponseDto.builder()
                 .userId(user.getUserId())
                 .email(user.getEmail())
-                .userName(user.getUsername())
+                .userName(user.displayUsername())
                 .avatarUrl(user.getAvatarUrl())
                 .roles(user.getRoles())
                 .isVerified(user.getIsVerified())

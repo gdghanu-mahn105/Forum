@@ -31,6 +31,14 @@ public class CommentController {
     ) {
         return ResponseEntity.ok(commentService.getListOfCommentAndCountReplyComment(postId));
     }
+    @GetMapping("/{postId}/getCommentCount")
+    ResponseEntity<?> getCommentWithReplyCount(
+            @PathVariable Long postId,
+            @RequestParam String parentPath,
+            @RequestParam Long parentId
+    ) {
+        return ResponseEntity.ok(commentService.getListOfCommentAndCountReplyComment(postId,parentPath,parentId));
+    }
     @GetMapping("getCommentByPath")
     ResponseEntity<?> getCommentByPath(
             @RequestParam Long postId,

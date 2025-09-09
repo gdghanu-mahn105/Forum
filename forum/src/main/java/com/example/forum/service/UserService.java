@@ -16,11 +16,11 @@ public interface UserService {
     @PreAuthorize("isAuthenticated()")
     UserResponseDto getCurrentUser(UserEntity userEntity);
 
-    @PreAuthorize("hasRole('ADMIN') or #id==authentication.principal.userId")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     UserResponseDto getUserInfor(Long id);
 
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     ApiResponse<?> softDeleteUser(Long id);
 
     @PreAuthorize("hasRole('ADMIN')")

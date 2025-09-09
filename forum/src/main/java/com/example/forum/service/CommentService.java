@@ -23,7 +23,10 @@ public interface CommentService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     ApiResponse<?> softDeletedComment(Long commentId);
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     ApiResponse<?> hardDeletedComment(Long commentId);
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    List<CommentDto> getListOfCommentAndCountReplyComment(Long postId, String parentPath, Long parentId);
 
 }

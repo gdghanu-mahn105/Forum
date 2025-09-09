@@ -145,6 +145,10 @@ public class PostServiceImpl implements PostService {
         PostEntity post = postRepo.findByPostId(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
 
+        if(post.getIsDeleted()){
+            throw new ResourceNotFoundException("Post not found!");
+        }
+
         UserEntity currentUser = securityService.getCurrentUser();  // dùng service
         Long currentUserId = currentUser.getUserId();
 
@@ -175,6 +179,10 @@ public class PostServiceImpl implements PostService {
         PostEntity post= postRepo.findByPostId(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
 
+        if(post.getIsDeleted()){
+            throw new ResourceNotFoundException("Post not found!");
+        }
+
         UserEntity currentUser = securityService.getCurrentUser();  // dùng service
         Long currentUserId = currentUser.getUserId();
 
@@ -185,6 +193,7 @@ public class PostServiceImpl implements PostService {
         postRepo.save(post);
         return ApiResponse.builder()
                 .success(true)
+                .message("Deleted")
                 .build();
     }
 
@@ -195,6 +204,7 @@ public class PostServiceImpl implements PostService {
         postRepo.delete(post);
         return ApiResponse.builder()
                 .success(true)
+                .message("Post is permanently deleted!")
                 .build();
     }
 }

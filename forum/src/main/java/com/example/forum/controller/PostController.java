@@ -46,7 +46,7 @@ public class PostController {
         return ResponseEntity.ok(postService.getPosts(page, size, sortBy, sortDirect, keyword));
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping("/{id}/update")
     public ResponseEntity<?> updatePost(
             @PathVariable Long id,
             @RequestBody UpdatePostRequest request
