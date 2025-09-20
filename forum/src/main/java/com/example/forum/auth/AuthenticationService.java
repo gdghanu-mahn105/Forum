@@ -2,6 +2,7 @@ package com.example.forum.auth;
 
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.AuthenticationResponse;
+import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.security.JWTService;
 import com.example.forum.dto.request.AuthenticationRequest;
 import com.example.forum.dto.request.RegisterRequest;
@@ -30,7 +31,7 @@ public class AuthenticationService {
     private final VerificationService verificationService;
     private final RoleRepository roleRepository;
 
-    public ApiResponse<?> register(RegisterRequest request) {
+    public UserSummaryDto register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email was used");
@@ -56,10 +57,10 @@ public class AuthenticationService {
 
         verificationService.sendVerificationEmail(user);
 
-        return ApiResponse.builder()
-                .success(true)
-                .message("Please verify email!")
-                .build();
+        return new UserSummaryDto(user.getUserId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getAvatarUrl());
     }
 
     public ApiResponse<?> verifyCode(String email, String code) {

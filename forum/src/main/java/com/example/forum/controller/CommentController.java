@@ -3,6 +3,7 @@ package com.example.forum.controller;
 
 import com.example.forum.dto.request.CreateCommentRequest;
 import com.example.forum.dto.request.UpdateCommentRequest;
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,21 +24,36 @@ public class CommentController {
             ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(commentService.createComment(postId,request));
+                .body( new ApiResponse<>(
+                        true,
+                        "Comment created",
+                        commentService.createComment(postId,request)
+                ));
     }
     @GetMapping("/getCommentCount")
     ResponseEntity<?> getCommentWithReplyCount(
             @RequestParam Long postId
     ) {
-        return ResponseEntity.ok(commentService.getListOfCommentAndCountReplyComment(postId));
+        return ResponseEntity.ok( new ApiResponse<>(
+                true,
+                "get successfully",
+                commentService.getListOfCommentAndCountReplyComment(postId)
+        ));
     }
+    // for specific comment
     @GetMapping("/{postId}/getCommentCount")
     ResponseEntity<?> getCommentWithReplyCount(
             @PathVariable Long postId,
             @RequestParam String parentPath,
             @RequestParam Long parentId
     ) {
-        return ResponseEntity.ok(commentService.getListOfCommentAndCountReplyComment(postId,parentPath,parentId));
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "get successfully",
+                        commentService.getListOfCommentAndCountReplyComment(postId,parentPath,parentId)
+                )
+        );
     }
     @GetMapping("getCommentByPath")
     ResponseEntity<?> getCommentByPath(
@@ -45,7 +61,12 @@ public class CommentController {
             @RequestParam String path
     ){
         return ResponseEntity.ok(
-                commentService.getListOfCommentByPath(postId, path)
+                new ApiResponse<>(
+                        true,
+                        "get successfully",
+                        commentService.getListOfCommentByPath(postId, path)
+                )
+
         );
     }
 
@@ -54,14 +75,25 @@ public class CommentController {
             @PathVariable Long commentId,
             @RequestBody UpdateCommentRequest request
     ) {
-        return ResponseEntity.ok(commentService.updateComment(commentId, request));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Comment updated!",
+                commentService.updateComment(commentId, request)
+        ));
     }
 
     @PatchMapping("/{commentId}")
     ResponseEntity<?> softDeletedComment(
             @PathVariable Long commentId
     ) {
-        return ResponseEntity.ok(commentService.softDeletedComment(commentId));
+        commentService.softDeletedComment(commentId);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Comment deleted!",
+                        null
+                )
+        );
 
     }
 
@@ -69,7 +101,14 @@ public class CommentController {
     ResponseEntity<?> hardDeletedComment(
             @PathVariable Long commentId
     ){
-        return ResponseEntity.ok(commentService.hardDeletedComment(commentId));
+        commentService.hardDeletedComment(commentId);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Permanently deleted comment",
+                        null
+                )
+        );
     }
 
 

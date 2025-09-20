@@ -27,8 +27,8 @@ public interface PostService {
     PostResponseDto updatePost(Long postId,UpdatePostRequest request);
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    ApiResponse<?> softDeletePost(Long id);
+    void softDeletePost(Long id);
 
     @PreAuthorize("hasAnyRole('ADMIN')")
-    ApiResponse<?> hardDeletePost(Long id);
+    void hardDeletePost(Long id);
 }

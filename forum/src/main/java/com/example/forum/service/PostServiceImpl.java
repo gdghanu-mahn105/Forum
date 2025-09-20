@@ -175,7 +175,7 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    public ApiResponse<?> softDeletePost(Long id) {
+    public void softDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
 
@@ -191,20 +191,12 @@ public class PostServiceImpl implements PostService {
         }
         post.setIsDeleted(true);
         postRepo.save(post);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Deleted")
-                .build();
     }
 
     @Override
-    public ApiResponse<?> hardDeletePost(Long id) {
+    public void hardDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
         postRepo.delete(post);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Post is permanently deleted!")
-                .build();
     }
 }

@@ -21,7 +21,7 @@ public class VoteController {
     ){
         return ResponseEntity.ok(new ApiResponse<>(
                 true,
-                "",
+                "Vote success",
                 voteService.votePost(post_id, voteType)
         ));
     }

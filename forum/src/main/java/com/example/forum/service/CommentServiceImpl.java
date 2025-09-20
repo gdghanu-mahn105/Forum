@@ -120,7 +120,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public ApiResponse<?> softDeletedComment(Long commentId) {
+    public void softDeletedComment(Long commentId) {
         CommentEntity comment = commentRepository.findByCommentIdAndIsDeletedFalse(commentId)
                 .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
 
@@ -132,14 +132,10 @@ public class CommentServiceImpl implements CommentService {
         }
         comment.setIsDeleted(true);
         commentRepository.save(comment);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Deleted")
-                .build();
     }
 
     @Override
-    public ApiResponse<?> hardDeletedComment(Long commentId) {
+    public void hardDeletedComment(Long commentId) {
         CommentEntity comment = commentRepository.findByCommentIdAndIsDeletedFalse(commentId)
                 .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
 
@@ -150,10 +146,6 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException("You can only delete your own comment!");
         }
         commentRepository.delete(comment);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Permanently deleted")
-                .build();
     }
 
     @Override

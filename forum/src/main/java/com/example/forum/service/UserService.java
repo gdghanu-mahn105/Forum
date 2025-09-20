@@ -21,7 +21,7 @@ public interface UserService {
 
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    ApiResponse<?> softDeleteUser(Long id);
+    void softDeleteUser(Long id);
 
     @PreAuthorize("hasRole('ADMIN')")
     List<UserResponseDto> getAllUsers();
@@ -39,8 +39,8 @@ public interface UserService {
     UserResponseDto updateUser(Long id, UserUpdateRequest request);
 
     @PreAuthorize("hasRole('ADMIN')")
-    ApiResponse<?> hardDeleteUser(Long id);
+    void hardDeleteUser(Long id);
 
     @PreAuthorize("hasRole('USER') and #id==authentication.principal.userId")
-    ApiResponse<?> changePassword(Long id, ChangePasswordRequest request);
+    void changePassword(Long id, ChangePasswordRequest request);
 }
