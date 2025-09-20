@@ -3,6 +3,7 @@ package com.example.forum.auth;
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.AuthenticationResponse;
 import com.example.forum.dto.response.UserSummaryDto;
+import com.example.forum.exception.EmailAlreadyExistsException;
 import com.example.forum.security.JWTService;
 import com.example.forum.dto.request.AuthenticationRequest;
 import com.example.forum.dto.request.RegisterRequest;
@@ -34,7 +35,7 @@ public class AuthenticationService {
     public UserSummaryDto register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email was used");
+            throw new EmailAlreadyExistsException( "Email was used");
         }
 
         if(request.getPassword()==null){
@@ -63,17 +64,13 @@ public class AuthenticationService {
                 user.getAvatarUrl());
     }
 
-    public ApiResponse<?> verifyCode(String email, String code) {
+    public void verifyCode(String email, String code) {
         verificationService.verifyToken(email, code);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Your account is verified")
-                .build();
     }
 
 
 
-    public ApiResponse<?> authenticate(AuthenticationRequest request) {
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
 
         var user = userRepository.findByEmail(request.getEmail())
                  .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -86,15 +83,17 @@ public class AuthenticationService {
                     )
             );
 
-            var JWToken = jwtService.generateToken(user);
+            var jwtToken = jwtService.generateToken(user);
             AuthenticationResponse response=  AuthenticationResponse.builder()
-                    .Token(JWToken)
+                    .Token(jwtToken)
+                    .user(UserSummaryDto.builder()
+                            .userId(user.getUserId())
+                            .username(user.displayUsername())
+                            .email(user.getEmail())
+                            .avatarUrl(user.getAvatarUrl())
+                            .build())
                     .build();
-            return ApiResponse.builder()
-                    .success(true)
-                    .message("authenticated")
-                    .Data(response)
-                    .build();
+            return response;
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
         } catch (DisabledException ex){

@@ -2,7 +2,7 @@ package com.example.forum.repository;
 
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.entity.Vote;
-import com.example.forum.entity.VoteType;
+import com.example.forum.entity.Enum.VoteType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

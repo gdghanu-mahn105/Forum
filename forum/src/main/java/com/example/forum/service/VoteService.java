@@ -2,7 +2,7 @@ package com.example.forum.service;
 
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
-import com.example.forum.entity.VoteType;
+import com.example.forum.entity.Enum.VoteType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 

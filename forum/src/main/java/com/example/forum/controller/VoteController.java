@@ -1,8 +1,7 @@
 package com.example.forum.controller;
 
 import com.example.forum.dto.response.ApiResponse;
-import com.example.forum.entity.VoteType;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.entity.Enum.VoteType;
 import com.example.forum.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

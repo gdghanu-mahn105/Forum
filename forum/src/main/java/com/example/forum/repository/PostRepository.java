@@ -13,7 +13,7 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
     Optional<PostEntity> findByPostId(Long id);
 
-    Page<PostEntity> findByPostTitleContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
+    Page<PostEntity> findByPostTitleContainingIgnoreCaseAndIsArchivedFalse(String keyword, Pageable pageable);
 
 
 }

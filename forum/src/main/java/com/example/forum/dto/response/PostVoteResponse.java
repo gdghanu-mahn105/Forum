@@ -1,8 +1,7 @@
 package com.example.forum.dto.response;
 
-import com.example.forum.entity.VoteType;
+import com.example.forum.entity.Enum.VoteType;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 
 

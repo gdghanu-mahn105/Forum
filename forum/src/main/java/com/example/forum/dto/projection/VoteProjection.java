@@ -1,6 +1,6 @@
 package com.example.forum.dto.projection;
 
-import com.example.forum.entity.VoteType;
+import com.example.forum.entity.Enum.VoteType;
 
 public interface VoteProjection {
     Long getUserId();

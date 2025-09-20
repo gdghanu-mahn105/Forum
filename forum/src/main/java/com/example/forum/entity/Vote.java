@@ -1,5 +1,6 @@
 package com.example.forum.entity;
 
+import com.example.forum.entity.Enum.VoteType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

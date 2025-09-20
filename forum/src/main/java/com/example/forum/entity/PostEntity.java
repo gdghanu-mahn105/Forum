@@ -1,15 +1,15 @@
 package com.example.forum.entity;
 
+import com.example.forum.entity.Enum.PostStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -20,11 +20,11 @@ public class PostEntity {
     @Column(name = "post_id")
     private Long postId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
     private UserEntity creator;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "post_categories",
             joinColumns = @JoinColumn(name = "post_id"),
@@ -35,7 +35,7 @@ public class PostEntity {
     @Column(name = "post_title")
     private String postTitle;
 
-    @Column(name = "post_content")
+    @Column(name = "post_content", columnDefinition = "TEXT")
     private String postContent;
 
     @Column(name = "thumbnail")
@@ -47,19 +47,26 @@ public class PostEntity {
     @Column(name = "downvotes")
     private Long downvotes;
 
-    @Column(name = "is_deleted")
-    private Boolean isDeleted;
+    @Column(name = "is_archived")
+    private Boolean isArchived;
 
     @Column(name = "counted_views")
     private Long countedViews;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
     @JoinTable(name = "post_tags",
     joinColumns= @JoinColumn(name = "post_id"),
     inverseJoinColumns = @JoinColumn(name = "tag_id"),
     uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "tag_id"})
     )
     private Set<Tag> tags = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private PostStatus status = PostStatus.DRAFT;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<MediaEntity> mediaFiles = new HashSet<>();
 
 
     @Column(name = "created_at", updatable = false)
@@ -72,7 +79,7 @@ public class PostEntity {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.isDeleted = this.isDeleted != null ? this.isDeleted : false;
+        this.isArchived = this.isArchived!= null ? this.isArchived : false;
     }
 
     @PreUpdate

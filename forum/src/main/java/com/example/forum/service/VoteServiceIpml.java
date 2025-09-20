@@ -5,7 +5,7 @@ import com.example.forum.dto.response.PostVoteResponse;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.Vote;
-import com.example.forum.entity.VoteType;
+import com.example.forum.entity.Enum.VoteType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.VoteRepository;

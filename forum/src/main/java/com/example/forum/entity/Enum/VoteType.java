@@ -1,4 +1,4 @@
-package com.example.forum.entity;
+package com.example.forum.entity.Enum;
 
 public enum VoteType {
         UPVOTE(1),

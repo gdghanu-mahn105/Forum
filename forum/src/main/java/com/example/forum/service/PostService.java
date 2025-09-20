@@ -2,7 +2,6 @@ package com.example.forum.service;
 
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
-import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.PostResponseDto;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,4 +30,7 @@ public interface PostService {
 
     @PreAuthorize("hasAnyRole('ADMIN')")
     void hardDeletePost(Long id);
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    void removeMediaFromPost(Long postId, Long mediaId);
 }
