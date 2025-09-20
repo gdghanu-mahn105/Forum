@@ -29,5 +29,6 @@ public class Vote {
     @JoinColumn(name = "post_id" ,nullable = false)
     private PostEntity postEntity;
 
-    private int value;
+    @Enumerated(EnumType.STRING)
+    private VoteType voteType;
 }
