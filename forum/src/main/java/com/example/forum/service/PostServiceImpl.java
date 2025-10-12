@@ -4,6 +4,7 @@ import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.*;
 import com.example.forum.entity.*;
+import com.example.forum.entity.Enum.EventType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.CategoryRepository;
 import com.example.forum.repository.PostRepository;
@@ -17,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +32,7 @@ public class PostServiceImpl implements PostService {
     private final CategoryRepository categoryRepo;
     private final TagRepository tagRepo;
     private final SecurityService securityService;
+    private final NotificationService notificationService;
 
     @Override
     public PostResponseDto createPost(CreatePostRequest request, Long userId) {
@@ -68,8 +69,17 @@ public class PostServiceImpl implements PostService {
                     }).collect(Collectors.toSet());
             post.setMediaFiles(mediaEntitySet);
         }
-
         postRepo.save(post);
+
+        NotificationEvent newNotificationEvent = notificationService.createEvent(
+                EventType.NEW_POST,
+                creator,
+                request.getPostTitle(),
+                post.getPostId(),
+                "POST");
+
+        notificationService.notifyFollowers(newNotificationEvent);
+
 
         return mapToPostResponseDto(post);
     }

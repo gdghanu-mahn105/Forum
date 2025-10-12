@@ -3,10 +3,11 @@ package com.example.forum.service;
 import com.example.forum.dto.projection.CommentProjection;
 import com.example.forum.dto.request.CreateCommentRequest;
 import com.example.forum.dto.request.UpdateCommentRequest;
-import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.CommentDto;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.entity.CommentEntity;
+import com.example.forum.entity.Enum.EventType;
+import com.example.forum.entity.NotificationEvent;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
@@ -17,7 +18,6 @@ import com.example.forum.security.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 @Service
@@ -28,6 +28,7 @@ public class CommentServiceImpl implements CommentService {
     private final SecurityService securityService;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     @Override
     public CommentDto createComment(Long postId, CreateCommentRequest request) {
@@ -54,11 +55,41 @@ public class CommentServiceImpl implements CommentService {
             newPath= "/";
             comment.setParentId(null);
         } else {
+            CommentEntity parentComment = commentRepository.findById(request.getParentId())
+                    .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
             comment.setParentId(request.getParentId());
             newPath = request.getParentPath() + request.getParentId() +"/";
         }
         comment.setCommentPath(newPath);
         commentRepository.save(comment);
+
+        // Notification
+        if(request.getParentPath() == null
+                || request.getParentPath().trim().isEmpty()
+                || request.getParentId()==0) {
+            NotificationEvent notificationEvent = notificationService.createEvent(
+                    EventType.NEW_COMMENT,
+                    currentUser,
+                    request.getContent().substring(0, 20),
+                    comment.getCommentId(),
+                    "COMMENT"
+            );
+            notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
+        } else {
+            NotificationEvent notificationEvent = notificationService.createEvent(
+                    EventType.NEW_REPLY,
+                    currentUser,
+                    request.getContent().substring(0, 20),
+                    comment.getCommentId(),
+                    "COMMENT"
+            );
+            CommentEntity parentComment = commentRepository.findById(request.getParentId())
+                    .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+            notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
+            notificationService.notifySpecificUser(parentComment.getUserEntity(), notificationEvent);
+
+        }
+
 
         return mapToCommentDto(comment);
     }

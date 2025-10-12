@@ -2,6 +2,8 @@ package com.example.forum.service;
 
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
+import com.example.forum.entity.Enum.EventType;
+import com.example.forum.entity.NotificationEvent;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.Vote;
@@ -22,6 +24,7 @@ public class VoteServiceIpml implements VoteService{
     private final PostRepository postRepository;
     private final SecurityService securityService;
     private final VoteRepository voteRepository;
+    private final NotificationService notificationService;
 
     @Override
     public PostVoteResponse votePost(Long postId, VoteType newVote) {
@@ -48,6 +51,15 @@ public class VoteServiceIpml implements VoteService{
         }
 
         postRepository.save(post);
+
+        NotificationEvent newNotificationEvent = notificationService.createEvent(
+                EventType.NEW_VOTE,
+                currentUser,
+                "You have " + finalVote + " from " + currentUser.displayUsername(),
+                post.getPostId(),
+                "POST");
+
+        notificationService.notifySpecificUser(post.getCreator(), newNotificationEvent);
 
         return new PostVoteResponse(
                 post.getPostId(),

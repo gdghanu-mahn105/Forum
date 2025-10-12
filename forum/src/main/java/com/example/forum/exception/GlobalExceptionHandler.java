@@ -8,8 +8,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,5 +70,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
                 new ApiResponse<>(false, "Access denied", null)
         );
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<?> handleBadRequestException(BadRequestException ex){
+        return ResponseEntity.
+                status(HttpStatus.BAD_REQUEST)
+                .body( new ApiResponse<>(
+                        false,
+                        ex.getMessage(),
+                        null
+
+                ));
+    }
+
+    @ExceptionHandler(NotLoggedInException.class)
+    public ResponseEntity<?> handleNotLoggedInException(NotLoggedInException e){
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(
+                        false,
+                        e.getMessage(),
+                        null
+                ));
+
     }
 }
