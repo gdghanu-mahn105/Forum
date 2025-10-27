@@ -1,5 +1,7 @@
 package com.example.forum.controller;
 
+import com.example.forum.dto.response.ApiResponse;
+import com.example.forum.entity.Enum.VoteType;
 import com.example.forum.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,16 +16,25 @@ public class VoteController {
     @PostMapping("/{post_id}/vote")
     ResponseEntity<?> vote (
             @PathVariable Long post_id,
-            @RequestParam int value
+            @RequestParam VoteType voteType
     ){
-        return ResponseEntity.ok(voteService.votePost(post_id,value));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Vote success",
+                voteService.votePost(post_id, voteType)
+        ));
     }
 
     @GetMapping("/{post_id}/vote")
     ResponseEntity<?> getVoteByVoteType (
             @PathVariable Long post_id,
-            @RequestParam int voteValue
-    ) {
-        return ResponseEntity.ok(voteService.findVoteOfPost(post_id, voteValue));
+            @RequestParam VoteType voteType
+            ) {
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "list of vote by vote_type",
+                voteService.findVoteOfPost(post_id, voteType)
+        ));
     }
 }

@@ -2,6 +2,7 @@ package com.example.forum.controller;
 
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.UserService;
@@ -22,12 +23,20 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        return ResponseEntity.ok(userService.getCurrentUser(userEntity));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Current user",
+                userService.getCurrentUser(userEntity)
+        ));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDto> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserInfor(id));
+    public ResponseEntity<?> getUser(@PathVariable Long id) {
+        return ResponseEntity.ok( new ApiResponse<>(
+                true,
+                "get user by id",
+                userService.getUserInfor(id)
+        ));
     }
 
     @GetMapping
@@ -38,13 +47,21 @@ public class UserController {
             @RequestParam(defaultValue = "desc") String sortDirect,
             @RequestParam(defaultValue = "") String keyword
     ){
-        return ResponseEntity.ok(userService.getUsers(page, size, sortBy,sortDirect, keyword));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "",
+                userService.getUsers(page, size, sortBy,sortDirect, keyword)
+        ));
     }
 
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserResponseDto>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "get all users",
+                userService.getAllUsers()
+        ));
     }
 
     @PatchMapping("/{id}/change-password")
@@ -52,7 +69,12 @@ public class UserController {
             @PathVariable Long id,
             @RequestBody ChangePasswordRequest request
             ) {
-        return ResponseEntity.ok(userService.changePassword(id,request));
+        userService.changePassword(id, request);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Password is successfully changed",
+                null
+        ));
     }
 
     @PatchMapping("/{id}/update")
@@ -60,16 +82,32 @@ public class UserController {
             @PathVariable Long id,
             @RequestBody UserUpdateRequest request
     ) {
-        return ResponseEntity.ok(userService.updateUser(id, request));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Update user successfully!",
+                userService.updateUser(id, request)
+        ));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> hardDeleteUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.hardDeleteUser(id));
+        userService.hardDeleteUser(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "User is permanently deleted",
+                        null
+                )
+        );
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<?> softDeleteUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.softDeleteUser(id));
+        userService.softDeleteUser(id);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "User is temporary deleted",
+                null
+        ));
     }
 }

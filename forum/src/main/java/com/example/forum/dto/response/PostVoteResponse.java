@@ -1,7 +1,7 @@
 package com.example.forum.dto.response;
 
+import com.example.forum.entity.Enum.VoteType;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 
 
@@ -12,5 +12,5 @@ public class PostVoteResponse {
     private Long upvotes;
     private Long downvotes;
     private Long score;
-    private int userVote;
+    private VoteType userVote;
 }

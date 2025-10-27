@@ -8,5 +8,5 @@ public interface VerificationService {
 
     void verifyToken(String email, String inputToken);
 
-    ApiResponse<?> resendVerificationCode(String email);
+    void resendVerificationCode(String email);
 }

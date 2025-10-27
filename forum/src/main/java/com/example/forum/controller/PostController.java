@@ -2,6 +2,7 @@ package com.example.forum.controller;
 
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.PostResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.PostService;
@@ -26,13 +27,25 @@ public class PostController {
         UserEntity user =(UserEntity) authentication.getPrincipal();
         Long userId = user.getUserId();
         PostResponseDto postResponse = postService.createPost(request, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(postResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new ApiResponse<>(
+                        true,
+                        "Create post successfully",
+                        postResponse
+                )
+        );
 
     }
 
     @GetMapping("/{postId}")
     public ResponseEntity<?> getPostById(@PathVariable Long postId) {
-        return ResponseEntity.ok(postService.getPost(postId));
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "get post by id successfully",
+                        postService.getPost(postId)
+                )
+        );
     }
 
     @GetMapping("/search")
@@ -43,7 +56,13 @@ public class PostController {
             @RequestParam(defaultValue = "ASC") String sortDirect,
             @RequestParam(defaultValue = "") String keyword
     ) {
-        return ResponseEntity.ok(postService.getPosts(page, size, sortBy, sortDirect, keyword));
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "get post by filter",
+                        postService.getPosts(page, size, sortBy, sortDirect, keyword)
+                )
+        );
     }
 
     @PatchMapping("/{id}/update")
@@ -51,16 +70,32 @@ public class PostController {
             @PathVariable Long id,
             @RequestBody UpdatePostRequest request
             ){
-        return ResponseEntity.ok(postService.updatePost(id, request));
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Updated",
+                postService.updatePost(id, request)
+        ));
     }
 
     @PatchMapping("/{id}/soft-delete")
     public ResponseEntity<?> softDeletePost(@PathVariable Long id){
-        return ResponseEntity.ok(postService.softDeletePost(id));
+        postService.softDeletePost(id);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Post is temporaty deleted!",
+               null
+        ));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> hardDeletePost(@PathVariable Long id){
-        return ResponseEntity.ok(postService.hardDeletePost(id));
+        postService.hardDeletePost(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Post is permanently deleted",
+                        null
+                )
+        );
     }
 }

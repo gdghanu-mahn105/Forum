@@ -2,9 +2,12 @@ package com.example.forum.service;
 
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
+import com.example.forum.entity.Enum.EventType;
+import com.example.forum.entity.NotificationEvent;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.Vote;
+import com.example.forum.entity.Enum.VoteType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.VoteRepository;
@@ -21,67 +24,91 @@ public class VoteServiceIpml implements VoteService{
     private final PostRepository postRepository;
     private final SecurityService securityService;
     private final VoteRepository voteRepository;
+    private final NotificationService notificationService;
 
     @Override
-    public PostVoteResponse votePost(Long postId, int value) {
+    public PostVoteResponse votePost(Long postId, VoteType newVote) {
+
         PostEntity post = postRepository.findByPostId(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
-        if (value != -1 && value != 1) {
-            throw new IllegalArgumentException("Vote must be -1 or +1");
-        }
 
-        UserEntity currentuUser = securityService.getCurrentUser();
-        Long currentUserId= currentuUser.getUserId();
+        UserEntity currentUser = securityService.getCurrentUser();
+        Long currentUserId= currentUser.getUserId();
 
         var existingVote = voteRepository.findByUserEntityUserIdAndPostEntityPostId(currentUserId, postId);
 
+        VoteType finalVote;
+
         if(existingVote.isEmpty()) {
-            Vote newVote = Vote.builder()
-                    .userEntity(currentuUser)
-                    .postEntity(post)
-                    .value(value)
-                    .build();
-            voteRepository.save(newVote);
-            if (value == 1) post.setUpvotes(post.getUpvotes() + 1);
-            else if (value == -1) post.setDownvotes(post.getDownvotes() + 1);
+            finalVote = createVote(post, currentUser, newVote);
         } else {
             Vote vote = existingVote.get();
-            // cancel vote
-            if(vote.getValue()==value) {
-                if (value == 1) post.setUpvotes(post.getUpvotes() - 1);
-                else if (value == -1) post.setDownvotes(post.getDownvotes() - 1);
-                value=0;
-                voteRepository.delete(vote);
-            } else { // if voteNow = -1 1
-                //change vote
-                if (vote.getValue()==1) post.setUpvotes(post.getUpvotes()-1);
-                else if(vote.getValue()==-1) post.setDownvotes(post.getDownvotes()-1);
-
-                if(value ==1) post.setUpvotes(post.getUpvotes()+1);
-                else if (value == -1) post.setDownvotes(post.getDownvotes()+1);
-                vote.setValue(value);
-                voteRepository.save(vote);
+            if (vote.getVoteType() == newVote) {
+                finalVote = cancelVote(post, vote, newVote);
+            } else {
+                finalVote = changeVote(post, vote, newVote);
             }
-
         }
+
         postRepository.save(post);
+
+        NotificationEvent newNotificationEvent = notificationService.createEvent(
+                EventType.NEW_VOTE,
+                currentUser,
+                "You have " + finalVote + " from " + currentUser.displayUsername(),
+                post.getPostId(),
+                "POST");
+
+        notificationService.notifySpecificUser(post.getCreator(), newNotificationEvent);
 
         return new PostVoteResponse(
                 post.getPostId(),
                 post.getUpvotes(),
                 post.getDownvotes(),
                 post.getUpvotes() - post.getDownvotes(),
-                value
+                finalVote
         );
     }
 
     @Override
-    public List<VoteProjection> findVoteOfPost(Long postId, int voteValue) {
+    public List<VoteProjection> findVoteOfPost(Long postId, VoteType voteType) {
         PostEntity post = postRepository.findByPostId(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
-        if(voteValue !=1 && voteValue !=-1) {
-            throw new IllegalArgumentException("the value must be 1 for upvote and -1 for downvote");
+        return voteRepository.findVotesOfPost(postId, voteType.name());
+    }
+
+    private VoteType createVote (PostEntity post, UserEntity user, VoteType newVote) {
+        Vote vote = Vote.builder()
+                .postEntity(post)
+                .voteType(newVote)
+                .userEntity(user)
+                .build();
+
+        if (newVote == VoteType.UPVOTE) post.setUpvotes(post.getUpvotes() + 1);
+        else if (newVote == VoteType.DOWNVOTE) post.setDownvotes(post.getDownvotes() + 1);
+
+        voteRepository.save(vote);
+        return newVote;
+    }
+
+    private VoteType cancelVote(PostEntity post, Vote existingVote, VoteType currentVote) {
+        voteRepository.delete(existingVote);
+        if (currentVote == VoteType.UPVOTE) post.setUpvotes(Math.max(0, post.getUpvotes() - 1));
+        else if (currentVote == VoteType.DOWNVOTE) post.setDownvotes(Math.max(0, post.getDownvotes() - 1));
+        return VoteType.NONE;
+    }
+
+    private VoteType changeVote (PostEntity post, Vote existingVote, VoteType newVote) {
+        if (newVote == VoteType.UPVOTE) {
+            post.setDownvotes(Math.max(0, post.getDownvotes() - 1));
+            post.setUpvotes(post.getUpvotes() + 1);
+        } else if (newVote == VoteType.DOWNVOTE) {
+            post.setUpvotes(Math.max(0, post.getUpvotes() - 1));
+            post.setDownvotes(post.getDownvotes() + 1);
         }
-        return voteRepository.findVotesOfPost(postId,voteValue);
+
+        existingVote.setVoteType(newVote);
+        voteRepository.save(existingVote);
+        return newVote;
     }
 }

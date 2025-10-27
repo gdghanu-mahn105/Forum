@@ -3,10 +3,8 @@ package com.example.forum.service;
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.*;
-import com.example.forum.entity.Category;
-import com.example.forum.entity.PostEntity;
-import com.example.forum.entity.Tag;
-import com.example.forum.entity.UserEntity;
+import com.example.forum.entity.*;
+import com.example.forum.entity.Enum.EventType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.CategoryRepository;
 import com.example.forum.repository.PostRepository;
@@ -20,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +32,7 @@ public class PostServiceImpl implements PostService {
     private final CategoryRepository categoryRepo;
     private final TagRepository tagRepo;
     private final SecurityService securityService;
+    private final NotificationService notificationService;
 
     @Override
     public PostResponseDto createPost(CreatePostRequest request, Long userId) {
@@ -54,10 +52,46 @@ public class PostServiceImpl implements PostService {
                 .upvotes(0L)
                 .downvotes(0L)
                 .countedViews(0L)
-                .isDeleted(false)
+                .isArchived(false)
                 .build();
+
+
+        if(request.getMediaRequestList() != null && !request.getMediaRequestList().isEmpty()) {
+            Set<MediaEntity> mediaEntitySet = request.getMediaRequestList()
+                    .stream()
+                    .map(mediaRequest ->{
+                        MediaEntity mediaEntity = new MediaEntity();
+                        mediaEntity.setMediaType(mediaRequest.getType());
+                        mediaEntity.setUrl(mediaRequest.getUrl());
+                        mediaEntity.setSize(mediaRequest.getSize());
+                        mediaEntity.setPost(post);
+                        return mediaEntity;
+                    }).collect(Collectors.toSet());
+            post.setMediaFiles(mediaEntitySet);
+        }
         postRepo.save(post);
+
+        NotificationEvent newNotificationEvent = notificationService.createEvent(
+                EventType.NEW_POST,
+                creator,
+                request.getPostTitle(),
+                post.getPostId(),
+                "POST");
+
+        notificationService.notifyFollowers(newNotificationEvent);
+
+
         return mapToPostResponseDto(post);
+    }
+
+    @Override
+    public void removeMediaFromPost(Long postId, Long mediaId) {
+        PostEntity post = postRepo.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+
+        post.getMediaFiles().removeIf(media -> media.getId().equals(mediaId));
+        // orphanRemoval = true => Hibernate sẽ xóa khỏi DB
+        postRepo.save(post);
     }
 
     private PostResponseDto mapToPostResponseDto(PostEntity post) {
@@ -69,6 +103,15 @@ public class PostServiceImpl implements PostService {
                 .upvotes(post.getUpvotes())
                 .downvotes(post.getDownvotes())
                 .countedViews(post.getCountedViews())
+                .mediaEntityList(post.getMediaFiles()
+                        .stream().map(media -> MediaResponse.builder()
+                                .id(media.getId())
+                                .url(media.getUrl())
+                                .type(media.getMediaType())
+                                .size(media.getSize())
+                                .build())
+                        .collect(Collectors.toList())
+                )
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .creator(mapToUserSummaryDto(post.getCreator()))
@@ -126,7 +169,7 @@ public class PostServiceImpl implements PostService {
             keyword = "";
         }
 
-        Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
+        Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCaseAndIsArchivedFalse(keyword, pageable);
         List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(this::mapToPostResponseDto).toList();
 
         return new PagedResponse<>(
@@ -145,7 +188,7 @@ public class PostServiceImpl implements PostService {
         PostEntity post = postRepo.findByPostId(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
 
-        if(post.getIsDeleted()){
+        if(post.getIsArchived()){
             throw new ResourceNotFoundException("Post not found!");
         }
 
@@ -167,6 +210,21 @@ public class PostServiceImpl implements PostService {
             Set<Tag> tags = new HashSet<>(tagRepo.findAllById(request.getTagSet()));
             post.setTags(tags);
         }
+
+        if (request.getMediaRequestList() != null) {
+//            post.getMediaFiles().clear();
+
+            Set<MediaEntity> newMediaSet = request.getMediaRequestList().stream()
+                    .map(mediaRequest -> {
+                        MediaEntity media = new MediaEntity();
+                        media.setUrl(mediaRequest.getUrl());
+                        media.setMediaType(mediaRequest.getType());
+                        media.setPost(post);
+                        return media;
+                    }).collect(Collectors.toSet());
+
+            post.getMediaFiles().addAll(newMediaSet);
+        }
         postRepo.save(post);
 
         return mapToPostResponseDto(post);
@@ -175,11 +233,11 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    public ApiResponse<?> softDeletePost(Long id) {
+    public void softDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
 
-        if(post.getIsDeleted()){
+        if(post.getIsArchived()){
             throw new ResourceNotFoundException("Post not found!");
         }
 
@@ -189,22 +247,14 @@ public class PostServiceImpl implements PostService {
         if(!currentUserId.equals(post.getCreator().getUserId())) {
             throw new AccessDeniedException("You are not have permission to delete this post");
         }
-        post.setIsDeleted(true);
+        post.setIsArchived(true);
         postRepo.save(post);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Deleted")
-                .build();
     }
 
     @Override
-    public ApiResponse<?> hardDeletePost(Long id) {
+    public void hardDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
         postRepo.delete(post);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Post is permanently deleted!")
-                .build();
     }
 }

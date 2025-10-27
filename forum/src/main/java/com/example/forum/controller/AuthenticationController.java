@@ -1,6 +1,7 @@
 package com.example.forum.controller;
 
 
+import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.AuthenticationResponse;
 import com.example.forum.auth.AuthenticationService;
 import com.example.forum.dto.request.AuthenticationRequest;
@@ -28,36 +29,63 @@ public class AuthenticationController {
     public ResponseEntity<?> register (
             @Valid @RequestBody RegisterRequest request
     ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(authenticationService.register(request));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(
+                        true,
+                        "Successfully created, you need to verify your email",
+                        authenticationService.register(request)
+        ));
     }
 
     @PostMapping("/verify-email")
     public ResponseEntity<?> verifyEmail (@Valid
             @RequestBody VerifyEmailRequest request
     ) {
-        return ResponseEntity.ok(authenticationService.verifyCode(request.getEmail(), request.getCode()));
+        authenticationService.verifyCode(request.getEmail(), request.getCode());
+        return ResponseEntity.ok(new ApiResponse<>(
+               true,
+               "successfully, you can login now",
+               null
+        ));
     }
 
     @PatchMapping("/resend-verification-code")
     public ResponseEntity<?> resendVerificationCode(
             @Valid @RequestBody ResendEmailRequest request
             ){
-        return ResponseEntity.ok(verificationService.resendVerificationCode(request.getEmail()));
+        verificationService.resendVerificationCode(request.getEmail());
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                "Resent verification code!",
+                null
+        ));
     }
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticate (
+    public ResponseEntity<?> authenticateUser (
             @Valid @RequestBody AuthenticationRequest request
     ) {
-        return ResponseEntity.ok(authenticationService.authenticate(request));
+        return ResponseEntity.ok( new ApiResponse<>(
+                true,
+                "Logging in successfully",
+                authenticationService.authenticate(request)
+
+        ));
     }
 
     @PostMapping("/createAdmin")
     public ResponseEntity<?> createAdmin (
             @Valid @RequestBody RegisterRequest request
     ) {
-        return ResponseEntity.ok(adminService.createAdmin(request));
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Successfully create ADMIN",
+                        adminService.createAdmin(request)
+                )
+        );
     }
 
 

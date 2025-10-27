@@ -108,30 +108,22 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public ApiResponse<?> softDeleteUser(Long id) {
+    public void softDeleteUser(Long id) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(()-> new IllegalArgumentException("User not found!"));
         user.setIsDeleted(true);
         userRepository.save(user);
-        return ApiResponse.builder()
-                .success(true)
-                .message("User is deleted")
-                .build();
     }
 
     @Override
-    public ApiResponse<?> hardDeleteUser(Long id) {
+    public void hardDeleteUser(Long id) {
         UserEntity user= userRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
         userRepository.delete(user);
-        return ApiResponse.builder()
-                .success(true)
-                .message("User is permanently deleted")
-                .build();
     }
 
     @Override
-    public ApiResponse<?> changePassword(Long id, ChangePasswordRequest request) {
+    public void changePassword(Long id, ChangePasswordRequest request) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
         if(!passwordEncoder.matches(request.getOldPassword(), user.getUserPassword())) {
@@ -139,9 +131,5 @@ public class UserServiceImpl implements UserService{
         }
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        return ApiResponse.builder()
-                .success(true)
-                .message("Password is successfully changed!")
-                .build();
     }
 }

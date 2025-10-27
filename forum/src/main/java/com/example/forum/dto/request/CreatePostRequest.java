@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -27,4 +28,6 @@ public class CreatePostRequest {
     private String postContent;
 
     private String thumbnailUrl;
+
+    private List<MediaRequest> mediaRequestList;
 }

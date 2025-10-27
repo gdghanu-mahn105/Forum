@@ -46,7 +46,7 @@ public class VerificationServiceImpl implements VerificationService {
 
 
     @Override
-    public ApiResponse<?> resendVerificationCode(String email) {
+    public void resendVerificationCode(String email) {
 
         String newToken= String.format("%06d", new Random().nextInt(1000000));
 
@@ -66,12 +66,6 @@ public class VerificationServiceImpl implements VerificationService {
         verificationRepo.save(user);
 
         sendMail(email,newToken);
-
-        return ApiResponse.builder()
-                .success(true)
-                .message("Resent!")
-                .build();
-
     }
 
     @Override

@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -13,6 +14,7 @@ public class PostResponseDto {
     private String postTitle;
     private String postContent;
     private String thumbnailUrl;
+    private List<MediaResponse> mediaEntityList;
     private Long upvotes;
     private Long downvotes;
     private Long countedViews;
