@@ -2,6 +2,9 @@ package com.example.forum.repository;
 
 import com.example.forum.dto.projection.CommentProjection;
 import com.example.forum.entity.CommentEntity;
+import com.example.forum.entity.PostEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -79,4 +82,11 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
             @Param("parentId") Long parentId
     );
 
+    Long countByPostEntity(PostEntity post);
+
+    Page<CommentEntity> findByPostEntity_PostIdAndParentIdIsNull(Long postId, Pageable pageable);
+
+    Long countByParentId(Long commentId);
+
+    List<CommentEntity> findByParentIdOrderByCreatedAtAsc(Long parentId);
 }

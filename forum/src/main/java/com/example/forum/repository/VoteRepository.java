@@ -1,6 +1,8 @@
 package com.example.forum.repository;
 
 import com.example.forum.dto.projection.VoteProjection;
+import com.example.forum.entity.PostEntity;
+import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.Vote;
 import com.example.forum.entity.Enum.VoteType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +14,10 @@ import java.util.Optional;
 
 @Repository
 public interface VoteRepository extends JpaRepository<Vote, Long> {
+    static Optional<Vote> findByUserEntityAndPostEntity(UserEntity currentUser, PostEntity post){
+        return Optional.empty();
+    }
+
     Optional<Vote> findByUserEntityUserIdAndPostEntityPostId(Long userId, Long postId);
     long countByPostEntityPostIdAndVoteType (Long postId, VoteType voteType);
 

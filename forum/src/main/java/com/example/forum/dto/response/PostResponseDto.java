@@ -21,8 +21,16 @@ public class PostResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private UserSummaryDto creator;
+//    private UserSummaryDto creator;
+    private Long creatorId;
+    private String creatorName;
+    private String creatorAvatarUrl;
 
     private Set<CategoryDto> categories;
     private Set<TagDto> tags;
+
+    private Long commentCount; // (Số bình luận)
+    private Integer timeRead;   // (Thời gian đọc, giả sử là Integer)
+    private String isVoted;     // ('UPVOTE', 'DOWNVOTE', hoặc null)
+    private Boolean isSaved;    // (true/false)
 }

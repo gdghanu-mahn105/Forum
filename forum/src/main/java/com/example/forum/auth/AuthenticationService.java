@@ -59,7 +59,7 @@ public class AuthenticationService {
         verificationService.sendVerificationEmail(user);
 
         return new UserSummaryDto(user.getUserId(),
-                user.getUsername(),
+                user.displayUsername(),
                 user.getEmail(),
                 user.getAvatarUrl());
     }

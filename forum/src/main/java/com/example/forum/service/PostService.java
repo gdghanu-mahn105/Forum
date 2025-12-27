@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 public interface PostService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    PostResponseDto createPost(CreatePostRequest request, Long userId);
+    PostResponseDto createPost(CreatePostRequest request);
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     PostResponseDto getPost(Long postId);
