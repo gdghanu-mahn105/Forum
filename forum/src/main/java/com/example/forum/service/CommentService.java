@@ -4,13 +4,17 @@ import com.example.forum.dto.request.CreateCommentRequest;
 import com.example.forum.dto.request.UpdateCommentRequest;
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.CommentDto;
+import com.example.forum.dto.response.CommentResponseDto;
+import com.example.forum.dto.response.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
 public interface CommentService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    CommentDto createComment(Long postId, CreateCommentRequest request);
+    CommentResponseDto createComment(Long postId, CreateCommentRequest request);
 
     List<CommentDto> getListOfCommentByPath(Long postId,String path);
 
@@ -29,4 +33,7 @@ public interface CommentService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     List<CommentDto> getListOfCommentAndCountReplyComment(Long postId, String parentPath, Long parentId);
 
+    PagedResponse<CommentResponseDto> getTopLevelComments(Long postId, Pageable pageable);
+
+    List<CommentResponseDto> getReplies(Long parentId);
 }

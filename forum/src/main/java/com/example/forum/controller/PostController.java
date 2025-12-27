@@ -12,21 +12,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/forum/posts")
+@CrossOrigin(origins = "http://localhost:3000")
 @RequiredArgsConstructor
+//cloud name: dbz9lqdui
+// upload preset: uploadpresetname
 public class PostController {
 
     private final PostService postService;
 
     @PostMapping("/create")
     public ResponseEntity<?> createPost (
-            @RequestBody CreatePostRequest request,
-            Authentication authentication
+            @RequestBody CreatePostRequest request
             ) {
-        UserEntity user =(UserEntity) authentication.getPrincipal();
-        Long userId = user.getUserId();
-        PostResponseDto postResponse = postService.createPost(request, userId);
+        PostResponseDto postResponse = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ApiResponse<>(
                         true,
@@ -56,6 +57,7 @@ public class PostController {
             @RequestParam(defaultValue = "ASC") String sortDirect,
             @RequestParam(defaultValue = "") String keyword
     ) {
+        System.out.println("GET-getPosts");
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         true,

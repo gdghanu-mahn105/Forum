@@ -14,8 +14,8 @@ import java.util.Set;
 @Builder
 public class CreatePostRequest {
 
-    @NotEmpty(message = "At least one category must be selected")
-    private Set<Long> categoryIds = new HashSet<>();
+//    @NotEmpty(message = "At least one category must be selected")
+//    private Set<Long> categoryIds = new HashSet<>();
 
     @NotEmpty(message = "At least one tag must be selected")
     private Set<Long> tagIds = new HashSet<>();
@@ -29,5 +29,5 @@ public class CreatePostRequest {
 
     private String thumbnailUrl;
 
-    private List<MediaRequest> mediaRequestList;
+//    private List<MediaRequest> mediaRequestList;
 }

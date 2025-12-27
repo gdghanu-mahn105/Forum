@@ -6,10 +6,7 @@ import com.example.forum.dto.response.*;
 import com.example.forum.entity.*;
 import com.example.forum.entity.Enum.EventType;
 import com.example.forum.exception.ResourceNotFoundException;
-import com.example.forum.repository.CategoryRepository;
-import com.example.forum.repository.PostRepository;
-import com.example.forum.repository.TagRepository;
-import com.example.forum.repository.UserRepository;
+import com.example.forum.repository.*;
 import com.example.forum.security.SecurityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,18 +31,24 @@ public class PostServiceImpl implements PostService {
     private final TagRepository tagRepo;
     private final SecurityService securityService;
     private final NotificationService notificationService;
+    private final CommentRepository commentRepository;
+    private final VoteRepository voteRepository;
 
     @Override
-    public PostResponseDto createPost(CreatePostRequest request, Long userId) {
+    public PostResponseDto createPost(CreatePostRequest request) {
+
+        UserEntity currentUser = securityService.getCurrentUser();  // dùng service
+        Long userId = currentUser.getUserId();
+
         UserEntity creator = userRepo.findById(userId)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
 
-        Set<Category> categories = new HashSet<>(categoryRepo.findAllById(request.getCategoryIds()));
+//        Set<Category> categories = new HashSet<>(categoryRepo.findAllById(request.getCategoryIds()));
         Set<Tag> tags= new HashSet<>(tagRepo.findAllById(request.getTagIds()));
 
         PostEntity post = PostEntity.builder()
                 .creator(creator)
-                .categories(categories)
+//                .categories(categories)
                 .postTitle(request.getPostTitle())
                 .tags(tags)
                 .postContent(request.getPostContent())
@@ -56,19 +60,19 @@ public class PostServiceImpl implements PostService {
                 .build();
 
 
-        if(request.getMediaRequestList() != null && !request.getMediaRequestList().isEmpty()) {
-            Set<MediaEntity> mediaEntitySet = request.getMediaRequestList()
-                    .stream()
-                    .map(mediaRequest ->{
-                        MediaEntity mediaEntity = new MediaEntity();
-                        mediaEntity.setMediaType(mediaRequest.getType());
-                        mediaEntity.setUrl(mediaRequest.getUrl());
-                        mediaEntity.setSize(mediaRequest.getSize());
-                        mediaEntity.setPost(post);
-                        return mediaEntity;
-                    }).collect(Collectors.toSet());
-            post.setMediaFiles(mediaEntitySet);
-        }
+//        if(request.getMediaRequestList() != null && !request.getMediaRequestList().isEmpty()) {
+//            Set<MediaEntity> mediaEntitySet = request.getMediaRequestList()
+//                    .stream()
+//                    .map(mediaRequest ->{
+//                        MediaEntity mediaEntity = new MediaEntity();
+//                        mediaEntity.setMediaType(mediaRequest.getType());
+//                        mediaEntity.setUrl(mediaRequest.getUrl());
+//                        mediaEntity.setSize(mediaRequest.getSize());
+//                        mediaEntity.setPost(post);
+//                        return mediaEntity;
+//                    }).collect(Collectors.toSet());
+//            post.setMediaFiles(mediaEntitySet);
+//        }
         postRepo.save(post);
 
         NotificationEvent newNotificationEvent = notificationService.createEvent(
@@ -81,7 +85,7 @@ public class PostServiceImpl implements PostService {
         notificationService.notifyFollowers(newNotificationEvent);
 
 
-        return mapToPostResponseDto(post);
+        return mapToPostResponseDto(post, null);
     }
 
     @Override
@@ -94,7 +98,30 @@ public class PostServiceImpl implements PostService {
         postRepo.save(post);
     }
 
-    private PostResponseDto mapToPostResponseDto(PostEntity post) {
+    private PostResponseDto mapToPostResponseDto(PostEntity post, UserEntity currentUser) {
+
+        Long commentCount = commentRepository.countByPostEntity(post);
+
+        Integer timeRead =0;
+        if(post.getPostContent()!=null && !post.getPostContent().isEmpty()){
+            int words = post.getPostContent().split("\\s+").length;
+            timeRead=(int) Math.ceil(words/150); // 200words/minute
+        }
+        // temporary false, null because of no auth
+        String isVoted = null;
+        Boolean isSaved = false;
+
+        if (currentUser != null) {
+            // 3. Logic kiểm tra isVoted
+            Optional<Vote> voteOpt = VoteRepository.findByUserEntityAndPostEntity(currentUser, post);
+            if (voteOpt.isPresent()) {
+                isVoted = voteOpt.get().getVoteType().toString(); // "UPVOTE" hoặc "DOWNVOTE"
+            }
+
+            // 4. Logic kiểm tra isSaved (TODO: Bạn cần tạo SavePostRepository)
+            // isSaved = savePostRepo.existsByUserEntityAndPostEntity(currentUser, post);
+        }
+
         return PostResponseDto.builder()
                 .postId(post.getPostId())
                 .postTitle(post.getPostTitle())
@@ -103,27 +130,33 @@ public class PostServiceImpl implements PostService {
                 .upvotes(post.getUpvotes())
                 .downvotes(post.getDownvotes())
                 .countedViews(post.getCountedViews())
-                .mediaEntityList(post.getMediaFiles()
-                        .stream().map(media -> MediaResponse.builder()
-                                .id(media.getId())
-                                .url(media.getUrl())
-                                .type(media.getMediaType())
-                                .size(media.getSize())
-                                .build())
-                        .collect(Collectors.toList())
-                )
+//                .mediaEntityList(post.getMediaFiles()
+//                        .stream().map(media -> MediaResponse.builder()
+//                                .id(media.getId())
+//                                .url(media.getUrl())
+//                                .type(media.getMediaType())
+//                                .size(media.getSize())
+//                                .build())
+//                        .collect(Collectors.toList())
+//                )
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
-                .creator(mapToUserSummaryDto(post.getCreator()))
-                .categories(post
-                        .getCategories().stream()
-                        .map(this::mapToCategoryDto)
-                        .collect(Collectors.toSet())
-                )
+                .creatorName(post.getCreator().displayUsername())
+                .creatorId(post.getCreator().getUserId())
+                .creatorAvatarUrl(post.getCreator().getAvatarUrl())
+//                .categories(post
+//                        .getCategories().stream()
+//                        .map(this::mapToCategoryDto)
+//                        .collect(Collectors.toSet())
+//                )
                 .tags(post.getTags().stream()
                         .map(this::mapToTagDto)
                         .collect(Collectors.toSet())
                 )
+                .commentCount(commentCount)
+                .timeRead(timeRead)
+                .isVoted(isVoted)
+                .isSaved(isSaved)
                 .build();
     }
     private UserSummaryDto mapToUserSummaryDto(UserEntity user) {
@@ -153,7 +186,7 @@ public class PostServiceImpl implements PostService {
     public PostResponseDto getPost(Long postId) {
         PostEntity post= postRepo.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
-        return mapToPostResponseDto(post);
+        return mapToPostResponseDto(post, null);
     }
 
     @Override
@@ -168,9 +201,10 @@ public class PostServiceImpl implements PostService {
         if (keyword == null) {
             keyword = "";
         }
+        UserEntity currentUser = securityService.getCurrentUserOrNull();
 
         Page<PostEntity> postEntitiesPage = postRepo.findByPostTitleContainingIgnoreCaseAndIsArchivedFalse(keyword, pageable);
-        List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(this::mapToPostResponseDto).toList();
+        List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(postEntity -> mapToPostResponseDto(postEntity, currentUser)).toList();
 
         return new PagedResponse<>(
                 postListContent,
@@ -227,7 +261,7 @@ public class PostServiceImpl implements PostService {
         }
         postRepo.save(post);
 
-        return mapToPostResponseDto(post);
+        return mapToPostResponseDto(post, null);
     }
 
 

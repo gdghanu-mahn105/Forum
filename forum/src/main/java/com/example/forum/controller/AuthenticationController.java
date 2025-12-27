@@ -8,12 +8,15 @@ import com.example.forum.dto.request.AuthenticationRequest;
 import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.dto.request.ResendEmailRequest;
 import com.example.forum.dto.request.VerifyEmailRequest;
+import com.example.forum.dto.response.UserSummaryDto;
+import com.example.forum.entity.UserEntity;
 import com.example.forum.service.AdminService;
 import com.example.forum.service.VerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +27,28 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final VerificationService verificationService;
     private final AdminService adminService;
+
+    // API mới: Lấy thông tin user hiện tại dựa trên Token
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        // Spring Security sẽ tự động lấy user từ JWT Token
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Not authenticated", null));
+        }
+
+        UserEntity user = (UserEntity) authentication.getPrincipal();
+
+        // Trả về UserSummaryDto (bạn đã có hàm mapper này)
+        UserSummaryDto userDto = new UserSummaryDto(
+                user.getUserId(),
+                user.displayUsername(),
+                user.getEmail(),
+                user.getAvatarUrl()
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "User fetched", userDto));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register (
@@ -42,6 +67,7 @@ public class AuthenticationController {
     public ResponseEntity<?> verifyEmail (@Valid
             @RequestBody VerifyEmailRequest request
     ) {
+        System.out.println("LOGIN SUCCESSFULLY");
         authenticationService.verifyCode(request.getEmail(), request.getCode());
         return ResponseEntity.ok(new ApiResponse<>(
                true,

@@ -2,6 +2,7 @@ package com.example.forum.security;
 
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.NotLoggedInException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,5 +21,15 @@ public class SecurityService {
     public Long getCurrentUserId() {
         UserEntity user = getCurrentUser();
         return (user != null) ? user.getUserId() : null;
+    }
+
+
+    public UserEntity getCurrentUserOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        // Giả sử 'getPrincipal()' trả về UserEntity (hoặc UserDetails)
+        return (UserEntity) authentication.getPrincipal();
     }
 }
