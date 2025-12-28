@@ -71,40 +71,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/forum/home").permitAll()
-                )
+                .logout(logout -> logout.disable())
                 .authenticationProvider(authenticationProvider)
-//                .addFilterBefore(corsFilter(), JWTAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
-    // === THÊM BEAN NÀY VÀO ===
-    /**
-     * Bean này dùng để ngăn Spring Boot tự động đăng ký
-     * JWTAuthenticationFilter vào chuỗi filter chung.
-     * Chúng ta muốn Spring Security (bên trên) toàn quyền kiểm soát nó.
-     */
-//    @Bean
-//    public FilterRegistrationBean<JWTAuthenticationFilter> jwtAuthenticationFilterRegistration(JWTAuthenticationFilter filter) {
-//        FilterRegistrationBean<JWTAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
-//        registration.setEnabled(false); // <-- DÒNG NÀY SẼ SỬA LỖI
-//        return registration;
-//    }
-
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowCredentials(true);
-//        config.setAllowedOrigins(List.of("http://localhost:3000"));
-//        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//        config.setAllowedHeaders(List.of("*"));
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        // Áp dụng cấu hình CORS này cho TẤT CẢ các đường dẫn
-//        source.registerCorsConfiguration("/**", config);
-//        return source;
-//    }
 
 }

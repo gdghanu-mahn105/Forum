@@ -18,4 +18,6 @@ public class AuthenticationRequest {
 
     @NotBlank(message = "Password is required")
     String password;
+
+    private String deviceId;
 }

@@ -1,17 +1,14 @@
 package com.example.forum.controller;
 
 
+import com.example.forum.dto.request.*;
 import com.example.forum.dto.response.ApiResponse;
-import com.example.forum.dto.response.AuthenticationResponse;
 import com.example.forum.auth.AuthenticationService;
-import com.example.forum.dto.request.AuthenticationRequest;
-import com.example.forum.dto.request.RegisterRequest;
-import com.example.forum.dto.request.ResendEmailRequest;
-import com.example.forum.dto.request.VerifyEmailRequest;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.AdminService;
 import com.example.forum.service.VerificationService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -91,13 +88,17 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser (
-            @Valid @RequestBody AuthenticationRequest request
+            @Valid @RequestBody AuthenticationRequest request,
+            HttpServletRequest httpServletRequest // <--- Inject cái này để lấy IP, UA
     ) {
+        String userAgent = httpServletRequest.getHeader("User-Agent");
+        if (userAgent == null) userAgent = "Unknown Device";
+        String ip = httpServletRequest.getRemoteAddr();
+        // (Lưu ý: Nếu deploy sau Nginx/Cloudflare thì phải lấy header "X-Forwarded-For")
         return ResponseEntity.ok( new ApiResponse<>(
                 true,
                 "Logging in successfully",
-                authenticationService.authenticate(request)
-
+                authenticationService.authenticate(request, userAgent, ip)
         ));
     }
 
@@ -105,11 +106,45 @@ public class AuthenticationController {
     public ResponseEntity<?> createAdmin (
             @Valid @RequestBody RegisterRequest request
     ) {
+        adminService.createAdmin(request);
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         true,
                         "Successfully create ADMIN",
-                        adminService.createAdmin(request)
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshtoken(
+            @RequestBody RefreshTokenRequest request
+    ) {
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Refreshed token",
+                        authenticationService.refreshToken(request.getRefreshToken())
+                )
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @RequestBody LogoutRequest request,
+            HttpServletRequest httpServletRequest
+    ){
+        String authHeader = httpServletRequest.getHeader("Authorization");
+        String accessToken = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")){
+            accessToken = authHeader.substring(7);
+        }
+        authenticationService.logout(request, accessToken);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Logout successfully",
+                        null
                 )
         );
     }

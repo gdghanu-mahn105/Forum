@@ -22,7 +22,7 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
 
-    public AuthenticationResponse createAdmin(RegisterRequest request) {
+    public void createAdmin(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
@@ -39,12 +39,6 @@ public class AdminService {
         admin.setIsVerified(true);
 
         userRepository.save(admin);
-
-        String jwt = jwtService.generateToken(admin);
-
-        return AuthenticationResponse.builder()
-                .Token(jwt)
-                .build();
     }
 }
 

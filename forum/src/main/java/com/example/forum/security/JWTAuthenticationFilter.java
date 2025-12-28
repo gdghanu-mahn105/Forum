@@ -1,6 +1,7 @@
 package com.example.forum.security;
 
 
+import com.example.forum.service.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
+    private final RedisService redisService;
 
     private static final List<String> PUBLIC_PATHS = List.of(
             "/v3/api-docs",
@@ -64,11 +66,18 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         if(authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request,response);
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,"Invalid authorization header");
             return;
         }
 
+
         jwtToken = authHeader.substring(7);
+
+        if (redisService.hasKey("BL_"+jwtToken)){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token has been revoked (Logout)");
+            return;
+        }
+
         userEmail= jwtService.extractUsername(jwtToken);
 
         if(userEmail !=null && SecurityContextHolder.getContext().getAuthentication()==null) {
