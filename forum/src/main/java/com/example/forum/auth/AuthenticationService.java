@@ -1,11 +1,14 @@
 package com.example.forum.auth;
 
 import com.example.forum.dto.request.LogoutRequest;
+import com.example.forum.dto.request.ResetPasswordRequest;
 import com.example.forum.dto.response.AuthenticationResponse;
 import com.example.forum.dto.response.UserSummaryDto;
+import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.Enum.DeviceStatus;
 import com.example.forum.entity.UserDevice;
 import com.example.forum.exception.EmailAlreadyExistsException;
+import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserDeviceRepository;
 import com.example.forum.security.JWTService;
 import com.example.forum.dto.request.AuthenticationRequest;
@@ -26,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +46,9 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
     private final UserDeviceRepository userDeviceRepository;
     private final RedisService redisService;
+    private final LoginAttemptService loginAttemptService;
+    private static final String PREFIX_RESET_TOKEN="password_reset_token:";
+
 
     public UserSummaryDto register(RegisterRequest request) {
 
@@ -75,14 +82,16 @@ public class AuthenticationService {
                 user.getAvatarUrl());
     }
 
-    public void verifyCode(String email, String code) {
-        verificationService.verifyToken(email, code);
+    public VerifyOtpResponse verifyCode(String email, String code) {
+        return verificationService.verifyToken(email, code);
     }
 
 
 
     public AuthenticationResponse authenticate(AuthenticationRequest request, String userAgent, String ip) {
-
+        if (loginAttemptService.isLocked(request.getEmail())){
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Your account is locked for 15 minutes because of over 5 attempts to enter correct password");
+        }
         var user = userRepository.findByEmail(request.getEmail())
                  .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -94,7 +103,9 @@ public class AuthenticationService {
                             request.getPassword()
                     )
             );
+            loginAttemptService.loginSucceeded(request.getEmail());
         } catch (BadCredentialsException ex) {
+            loginAttemptService.loginFail(request.getEmail());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
         } catch (DisabledException ex){
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Your account is not verified");
@@ -107,6 +118,8 @@ public class AuthenticationService {
 
         boolean isNewDevice =saveUserDevice(user, deviceId, rawRefreshToken, userAgent, ip);
         if (isNewDevice){
+
+
             // logic thông báo
             System.out.printf("CẢNH BÁO: Phát hiện đăng nhập từ thiết bị mới! User: {}, IP: {}", user.getEmail(), ip);
         }
@@ -215,6 +228,31 @@ public class AuthenticationService {
             if (remainTime >0) {
                 redisService.set("BL_"+ accessToken, "logout", remainTime, TimeUnit.MILLISECONDS);
             }
+        }
+    }
+
+    public void forgotPassword(String email){
+        System.out.println("Email nhận được: '" + email + "'");
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+        System.out.println("forgot - authservice2");
+        verificationService.sendVerificationEmail(user);
+    }
+
+
+    public void resetPassword(ResetPasswordRequest request){
+        String resetTokenKey = PREFIX_RESET_TOKEN+request.getResetToken();
+        UserEntity user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+
+        Object storedEmail = redisService.get(resetTokenKey);
+
+        if (storedEmail != null && storedEmail.toString().equals(request.getEmail())) {
+            user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+            redisService.delete(resetTokenKey);
+        } else {
+            throw new IllegalArgumentException("Invalid or expired reset token");
         }
     }
 

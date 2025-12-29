@@ -30,4 +30,12 @@ public class RedisService {
     public void delete(String key){
         redisTemplate.delete(key);
     }
+
+    public long increment(String key){
+        return redisTemplate.opsForValue().increment(key);
+    }
+
+    public void setExpire (String key, long timeout, TimeUnit unit){
+        redisTemplate.expire(key, timeout, unit);
+    }
 }

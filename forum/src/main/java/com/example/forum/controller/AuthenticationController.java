@@ -65,11 +65,10 @@ public class AuthenticationController {
             @RequestBody VerifyEmailRequest request
     ) {
         System.out.println("LOGIN SUCCESSFULLY");
-        authenticationService.verifyCode(request.getEmail(), request.getCode());
         return ResponseEntity.ok(new ApiResponse<>(
                true,
                "successfully, you can login now",
-               null
+                authenticationService.verifyCode(request.getEmail(), request.getCode())
         ));
     }
 
@@ -144,6 +143,30 @@ public class AuthenticationController {
                 new ApiResponse<>(
                         true,
                         "Logout successfully",
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword( @RequestBody ForgotPasswordRequest request){
+        authenticationService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Your verification code has been send to your email",
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request){
+        authenticationService.resetPassword(request);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Reset Password Successfully",
                         null
                 )
         );
