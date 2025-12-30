@@ -3,6 +3,7 @@ package com.example.forum.auth;
 import com.example.forum.dto.request.LogoutRequest;
 import com.example.forum.dto.request.ResetPasswordRequest;
 import com.example.forum.dto.response.AuthenticationResponse;
+import com.example.forum.dto.response.UserDeviceResponse;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.Enum.DeviceStatus;
@@ -29,10 +30,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Random;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class AuthenticationService {
     private final RedisService redisService;
     private final LoginAttemptService loginAttemptService;
     private static final String PREFIX_RESET_TOKEN="password_reset_token:";
+    private static final String REVOKED_USER_KEY = "revoked_user:";
 
 
     public UserSummaryDto register(RegisterRequest request) {
@@ -118,8 +121,6 @@ public class AuthenticationService {
 
         boolean isNewDevice =saveUserDevice(user, deviceId, rawRefreshToken, userAgent, ip);
         if (isNewDevice){
-
-
             // logic thông báo
             System.out.printf("CẢNH BÁO: Phát hiện đăng nhập từ thiết bị mới! User: {}, IP: {}", user.getEmail(), ip);
         }
@@ -231,6 +232,10 @@ public class AuthenticationService {
         }
     }
 
+    public void logoutA(UserEntity user){
+
+    }
+
     public void forgotPassword(String email){
         System.out.println("Email nhận được: '" + email + "'");
         UserEntity user = userRepository.findByEmail(email)
@@ -254,6 +259,51 @@ public class AuthenticationService {
         } else {
             throw new IllegalArgumentException("Invalid or expired reset token");
         }
+    }
+
+    public List<UserDeviceResponse> getAllDevice(UserEntity user, String currentUserDeviceId){
+        List<UserDevice> userDeviceList = userDeviceRepository.findAllByUserIdAndStatus(user.getUserId(), DeviceStatus.ACTIVE);
+        return userDeviceList.stream().map(userDevice -> UserDeviceResponse.builder()
+                    .deviceId(userDevice.getDeviceId())
+                    .deviceName(userDevice.getDeviceName())
+                    .lastIp(userDevice.getLastIp())
+                    .lastActiveAt(userDevice.getLastActiveAt())
+                    .isCurrentDevice(userDevice.getDeviceId().equals(currentUserDeviceId))
+                    .build()
+        ).collect(Collectors.toList());
+    }
+
+    private static final String REVOKED_DEVICE_KEY = "revoked_device:";
+    public void revokeDevice(UserEntity user, String deviceTargetId){
+        UserDevice device = userDeviceRepository.findByUserIdAndDeviceId(user.getUserId(), deviceTargetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
+
+        device.setStatus(DeviceStatus.REVOKED);
+        userDeviceRepository.save(device);
+
+        long revocationTime = System.currentTimeMillis();
+
+        long accessTokenTTL = 1000; // vi access token la 900
+
+        redisService.set(
+                REVOKED_DEVICE_KEY+deviceTargetId,
+                revocationTime,
+                accessTokenTTL,
+                TimeUnit.SECONDS
+        );
+    }
+
+    public void revokeAllDevice(UserEntity currentUser){
+        userDeviceRepository.revokeAllByUserId(currentUser.getUserId());
+        long revocationTime = System.currentTimeMillis();
+        long accessTokenTTL = 3600;
+
+        redisService.set(
+                REVOKED_USER_KEY +currentUser.getUserId(),
+                String.valueOf(revocationTime),
+                accessTokenTTL,
+                TimeUnit.SECONDS
+        );
     }
 
 }

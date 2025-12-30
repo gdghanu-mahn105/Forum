@@ -64,7 +64,6 @@ public class AuthenticationController {
     public ResponseEntity<?> verifyEmail (@Valid
             @RequestBody VerifyEmailRequest request
     ) {
-        System.out.println("LOGIN SUCCESSFULLY");
         return ResponseEntity.ok(new ApiResponse<>(
                true,
                "successfully, you can login now",
@@ -171,6 +170,4 @@ public class AuthenticationController {
                 )
         );
     }
-
-
 }

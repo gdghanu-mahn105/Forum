@@ -1,6 +1,5 @@
 package com.example.forum.security;
 
-
 import com.example.forum.service.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -26,7 +26,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
     private final RedisService redisService;
-
     private static final List<String> PUBLIC_PATHS = List.of(
             "/v3/api-docs",
             "/swagger-ui",
@@ -51,7 +50,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         final String requestURI = request.getRequestURI();
 
-        // === BƯỚC 1: KIỂM TRA XEM REQUEST CÓ PHẢI LÀ PUBLIC KHÔNG ===
         boolean isPublicPath = PUBLIC_PATHS.stream().anyMatch(requestURI::startsWith);
 
         if (isPublicPath) {
@@ -79,6 +77,16 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
 
         userEmail= jwtService.extractUsername(jwtToken);
+        Long userId= jwtService.extractUserId(jwtToken);
+        Date iatDate= jwtService.extractIssuedDate(jwtToken);
+        String deviceId = jwtService.extractDeviceId(jwtToken);
+
+        if(deviceId!= null && isDeviceRevoked(deviceId, iatDate, userId)){{
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Device session revoked");
+            return;
+        }}
+
 
         if(userEmail !=null && SecurityContextHolder.getContext().getAuthentication()==null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
@@ -97,5 +105,26 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request,response);
 
+    }
+
+    private boolean isDeviceRevoked(String deviceId, Date tokenIssuedAt, Long userId){
+
+        String userKey = "revoked_user:" + userId;
+        Object userRevokedAt = redisService.get(userKey);
+        if (userRevokedAt != null) {
+            if (tokenIssuedAt.getTime() < Long.parseLong(userRevokedAt.toString())) {
+                return true; // nếu token được tạo ra trước thời điẻm -> chặn
+            }
+        }
+
+
+        String redisKey = "revoked_device:" + deviceId;
+        Object revokedAtValue = redisService.get(redisKey);
+
+        if (revokedAtValue != null) {
+            long revokedAt = Long.parseLong(revokedAtValue.toString());
+            return tokenIssuedAt.getTime() < revokedAt;
+        }
+        return false;
     }
 }

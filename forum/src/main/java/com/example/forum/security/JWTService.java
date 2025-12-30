@@ -44,6 +44,14 @@ public class JWTService {
         return extractClaim(token, Claims::getIssuedAt);
     }
 
+    public String extractDeviceId(String token) {
+        return extractClaim(token, claims -> claims.get("deviceId", String.class));
+    }
+    public Long extractUserId(String token){
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject); // get name from token
     }
