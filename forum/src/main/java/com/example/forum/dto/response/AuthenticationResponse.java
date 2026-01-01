@@ -21,4 +21,9 @@ public class AuthenticationResponse {
     private String deviceId;
 
     private UserSummaryDto user;
+
+    @JsonProperty("requires_2fa")
+    private boolean requiresTwoFactor;
+
+    private String message;
 }

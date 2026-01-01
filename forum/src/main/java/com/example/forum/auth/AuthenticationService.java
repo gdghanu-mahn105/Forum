@@ -9,6 +9,7 @@ import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.Enum.DeviceStatus;
 import com.example.forum.entity.UserDevice;
 import com.example.forum.exception.EmailAlreadyExistsException;
+import com.example.forum.exception.OtpVerificationException;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserDeviceRepository;
 import com.example.forum.security.JWTService;
@@ -19,6 +20,7 @@ import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.security.TokenUtils;
+import com.example.forum.service.EmailService;
 import com.example.forum.service.RedisService;
 import com.example.forum.service.VerificationService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
@@ -49,8 +53,13 @@ public class AuthenticationService {
     private final UserDeviceRepository userDeviceRepository;
     private final RedisService redisService;
     private final LoginAttemptService loginAttemptService;
+    private final TwoFactorService twoFactorService;
+    private final EmailService emailService;
     private static final String PREFIX_RESET_TOKEN="password_reset_token:";
     private static final String REVOKED_USER_KEY = "revoked_user:";
+
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
+            .withZone(ZoneId.systemDefault());
 
 
     public UserSummaryDto register(RegisterRequest request) {
@@ -92,6 +101,7 @@ public class AuthenticationService {
 
 
     public AuthenticationResponse authenticate(AuthenticationRequest request, String userAgent, String ip) {
+
         if (loginAttemptService.isLocked(request.getEmail())){
             throw new ResponseStatusException(HttpStatus.LOCKED, "Your account is locked for 15 minutes because of over 5 attempts to enter correct password");
         }
@@ -116,20 +126,56 @@ public class AuthenticationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is locked");
         }
         String deviceId = request.getDeviceId();
+        if (user.isTwoFactorEnabled()) {
+            return AuthenticationResponse.builder()
+                    .requiresTwoFactor(true)
+                    .message("Two-factor authentication required")
+                    .build();
+        }
+        return finalizeLogin(user, request.getDeviceId(), userAgent, ip);
+    }
+
+    public AuthenticationResponse verifyTwoFactorLogin(String email, int otpCode, String deviceId, String userAgent, String ip){
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isTwoFactorEnabled()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "2FA is not enabled for this user");
+        }
+
+        boolean isValid = twoFactorService.isOtpValid(user.getTwoFactorSecret(), otpCode);
+
+        if (!isValid) {
+            // nếu không hợp lệ có thể check backup code
+            throw new OtpVerificationException("Invalid OTP Code");
+        }
+
+        return finalizeLogin(user, deviceId, userAgent, ip);
+    }
+
+    public AuthenticationResponse finalizeLogin(UserEntity user, String deviceId, String userAgent, String ip){
         if (deviceId == null) deviceId = UUID.randomUUID().toString();
         String rawRefreshToken = UUID.randomUUID().toString();
 
         boolean isNewDevice =saveUserDevice(user, deviceId, rawRefreshToken, userAgent, ip);
         if (isNewDevice){
-            // logic thông báo
-            System.out.printf("CẢNH BÁO: Phát hiện đăng nhập từ thiết bị mới! User: {}, IP: {}", user.getEmail(), ip);
+            String emailBody = String.format(
+                    "We noticed a new login to your account.\n\n" +
+                            "- Device: %s\n" +
+                            "- IP Address: %s\n" +
+                            "- Time: %s\n\n" +
+                            "If this wasn't you, please change your password immediately.",
+                    userAgent, formatter.format(Instant.now())
+            );
+
+            emailService.sendMail(user.getEmail(), "Security Alert: New Device Login", emailBody);
         }
 
         var jwtAccessToken = jwtService.generateAccessToken(user, deviceId);
         return AuthenticationResponse.builder()
                 .accessToken(jwtAccessToken)
                 .refreshToken(rawRefreshToken)
-                .deviceId(deviceId)               // [QUAN TRỌNG] Trả lại deviceId để client lưu
+                .deviceId(deviceId)
                 .user(UserSummaryDto.builder()
                         .userId(user.getUserId())
                         .username(user.displayUsername())
@@ -139,6 +185,8 @@ public class AuthenticationService {
                 .build();
 
     }
+
+
     public boolean saveUserDevice(UserEntity user, String deviceId, String rawRefreshToken, String ua, String ip){
 
         var existingDevice = userDeviceRepository.findByUserIdAndDeviceId(user.getUserId(), deviceId);
@@ -154,7 +202,6 @@ public class AuthenticationService {
             ua = ua.substring(0, 255);
         }
         userDevice.setRefreshTokenHash(TokenUtils.hashToken(rawRefreshToken));
-        userDevice.setDeviceName(ua);
         userDevice.setDeviceName(ua); // Tạm thời lưu user-agent, sau này parse đẹp sau
         userDevice.setLastIp(ip);
         userDevice.setStatus(DeviceStatus.ACTIVE);
@@ -232,9 +279,6 @@ public class AuthenticationService {
         }
     }
 
-    public void logoutA(UserEntity user){
-
-    }
 
     public void forgotPassword(String email){
         System.out.println("Email nhận được: '" + email + "'");
@@ -305,5 +349,7 @@ public class AuthenticationService {
                 TimeUnit.SECONDS
         );
     }
+
+
 
 }

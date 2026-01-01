@@ -95,4 +95,16 @@ public class GlobalExceptionHandler {
                 ));
 
     }
+
+    @ExceptionHandler(OtpVerificationException.class)
+    public ResponseEntity<?> handleOtpVerification(OtpVerificationException e){
+        return ResponseEntity.
+                status(HttpStatus.BAD_REQUEST)
+                .body( new ApiResponse<>(
+                        false,
+                        e.getMessage(),
+                        null
+                ));
+    }
+
 }

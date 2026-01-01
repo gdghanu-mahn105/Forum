@@ -170,4 +170,20 @@ public class AuthenticationController {
                 )
         );
     }
+
+    @PostMapping("/2fa-login")
+    public ResponseEntity<?> verify2faLogin (
+            @Valid @RequestBody Verify2faLoginRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        String userAgent = httpServletRequest.getHeader("User-Agent");
+        if (userAgent == null) userAgent = "Unknown Device";
+        String ip = httpServletRequest.getRemoteAddr();
+        // (Lưu ý: Nếu deploy sau Nginx/Cloudflare thì phải lấy header "X-Forwarded-For")
+        return ResponseEntity.ok( new ApiResponse<>(
+                true,
+                "Logging in successfully",
+                authenticationService.verifyTwoFactorLogin(request.getEmail(),request.getOtpCode(), request.getDeviceId(), userAgent, ip)
+        ));
+    }
 }

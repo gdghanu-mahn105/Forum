@@ -43,6 +43,12 @@ public class UserEntity implements UserDetails {
     @Column(name = "slug", unique = true)
     private String slug;
 
+    @Column(name = "is_2fa_enabled")
+    private boolean isTwoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
