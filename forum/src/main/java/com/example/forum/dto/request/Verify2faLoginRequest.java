@@ -12,7 +12,7 @@ public class Verify2faLoginRequest {
     private String email;
 
     @NotNull(message = "OTP is required")
-    private Integer otpCode;
+    private String otpCode;
 
     private String deviceId;
 }

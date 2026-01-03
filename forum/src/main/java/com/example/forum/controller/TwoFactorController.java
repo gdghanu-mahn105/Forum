@@ -2,6 +2,7 @@ package com.example.forum.controller;
 
 import com.example.forum.auth.TwoFactorService;
 import com.example.forum.dto.request.OtpInputRequest;
+import com.example.forum.dto.request.PasswordConfirmRequest;
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
@@ -33,13 +34,27 @@ public class TwoFactorController {
             @RequestBody OtpInputRequest request,
             @AuthenticationPrincipal UserEntity user
             ){
-        twoFactorService.verifyOtp(user.getEmail(), request.getOtpCode());
         return ResponseEntity.ok(
                         new ApiResponse<>(
                                 true,
-                                "Your account is verified",
-                                null
+                                "Your account is verified, Your backup code here!",
+                                twoFactorService.verifyOtp(user.getEmail(), request.getOtpCode())
                         )
                 );
+    }
+
+    @PostMapping("/disable-2fa")
+    public ResponseEntity<?> disable2fa(
+            @AuthenticationPrincipal UserEntity user,
+            @RequestBody PasswordConfirmRequest request
+    ) {
+
+        twoFactorService.disable2fa(user,request.getPassword());
+
+        return ResponseEntity.ok(
+                        new ApiResponse<>(
+                                true,
+                                "2FA disabled successfully",
+                                null));
     }
 }

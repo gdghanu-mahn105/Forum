@@ -55,6 +55,7 @@ public class AuthenticationService {
     private final LoginAttemptService loginAttemptService;
     private final TwoFactorService twoFactorService;
     private final EmailService emailService;
+    private final BackupCodeService backupCodeService;
     private static final String PREFIX_RESET_TOKEN="password_reset_token:";
     private static final String REVOKED_USER_KEY = "revoked_user:";
 
@@ -135,7 +136,7 @@ public class AuthenticationService {
         return finalizeLogin(user, request.getDeviceId(), userAgent, ip);
     }
 
-    public AuthenticationResponse verifyTwoFactorLogin(String email, int otpCode, String deviceId, String userAgent, String ip){
+    public AuthenticationResponse verifyTwoFactorLogin(String email, String otpCode, String deviceId, String userAgent, String ip){
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -143,10 +144,17 @@ public class AuthenticationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "2FA is not enabled for this user");
         }
 
-        boolean isValid = twoFactorService.isOtpValid(user.getTwoFactorSecret(), otpCode);
+        boolean isValid = false;
+        if(otpCode.matches("\\d{6}")){
+            int code = Integer.parseInt(otpCode);
+            isValid = twoFactorService.isOtpValid(user.getTwoFactorSecret(), code);
+        }
+
+        if(!isValid){
+            isValid= backupCodeService.verifyBackupCode(user, otpCode);
+        }
 
         if (!isValid) {
-            // nếu không hợp lệ có thể check backup code
             throw new OtpVerificationException("Invalid OTP Code");
         }
 
@@ -165,7 +173,7 @@ public class AuthenticationService {
                             "- IP Address: %s\n" +
                             "- Time: %s\n\n" +
                             "If this wasn't you, please change your password immediately.",
-                    userAgent, formatter.format(Instant.now())
+                    userAgent,ip, formatter.format(Instant.now())
             );
 
             emailService.sendMail(user.getEmail(), "Security Alert: New Device Login", emailBody);
