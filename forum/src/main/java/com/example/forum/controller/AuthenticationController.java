@@ -3,10 +3,10 @@ package com.example.forum.controller;
 
 import com.example.forum.dto.request.*;
 import com.example.forum.dto.response.ApiResponse;
-import com.example.forum.auth.AuthenticationService;
+import com.example.forum.service.impl.AuthenticationServiceImpl;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.service.AdminService;
+import com.example.forum.service.impl.AdminServiceImpl;
 import com.example.forum.service.VerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthenticationController {
 
-    private final AuthenticationService authenticationService;
+    private final AuthenticationServiceImpl authenticationService;
     private final VerificationService verificationService;
-    private final AdminService adminService;
+    private final AdminServiceImpl adminService;
 
     // API mới: Lấy thông tin user hiện tại dựa trên Token
     @GetMapping("/me")
@@ -86,17 +86,12 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser (
-            @Valid @RequestBody AuthenticationRequest request,
-            HttpServletRequest httpServletRequest // <--- Inject cái này để lấy IP, UA
+            @Valid @RequestBody AuthenticationRequest request
     ) {
-        String userAgent = httpServletRequest.getHeader("User-Agent");
-        if (userAgent == null) userAgent = "Unknown Device";
-        String ip = httpServletRequest.getRemoteAddr();
-        // (Lưu ý: Nếu deploy sau Nginx/Cloudflare thì phải lấy header "X-Forwarded-For")
         return ResponseEntity.ok( new ApiResponse<>(
                 true,
                 "Logging in successfully",
-                authenticationService.authenticate(request, userAgent, ip)
+                authenticationService.authenticate(request)
         ));
     }
 
@@ -173,17 +168,12 @@ public class AuthenticationController {
 
     @PostMapping("/2fa-login")
     public ResponseEntity<?> verify2faLogin (
-            @Valid @RequestBody Verify2faLoginRequest request,
-            HttpServletRequest httpServletRequest
+            @Valid @RequestBody Verify2faLoginRequest request
     ) {
-        String userAgent = httpServletRequest.getHeader("User-Agent");
-        if (userAgent == null) userAgent = "Unknown Device";
-        String ip = httpServletRequest.getRemoteAddr();
-        // (Lưu ý: Nếu deploy sau Nginx/Cloudflare thì phải lấy header "X-Forwarded-For")
         return ResponseEntity.ok( new ApiResponse<>(
                 true,
                 "Logging in successfully",
-                authenticationService.verifyTwoFactorLogin(request.getEmail(),request.getOtpCode(), request.getDeviceId(), userAgent, ip)
+                authenticationService.verifyTwoFactorLogin(request.getEmail(),request.getOtpCode(), request.getDeviceId())
         ));
     }
 }

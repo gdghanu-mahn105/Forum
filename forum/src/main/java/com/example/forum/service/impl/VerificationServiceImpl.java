@@ -1,10 +1,15 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.AppConstants;
 import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserRepository;
+import com.example.forum.service.CacheService;
+import com.example.forum.service.EmailService;
+import com.example.forum.service.VerificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.util.Random;
 import java.util.UUID;
@@ -16,21 +21,26 @@ public class VerificationServiceImpl implements VerificationService {
 
     private final EmailService emailService;
     private final UserRepository userRepository;
-    private final RedisService redisService;
+    private final CacheService redisService;
 
-    private static final String PREFIX = "verification:opt:";
-    private static final String PREFIX_ATTEMPT ="attempts:verification:otp:";
-    private static final long TIME_ATTEMPTS_EXPIRATION= 900; // 15 phuts
-    private static final long EXPIRATION_TIME= 300; // 5 phút
-    private static final int MAX_ATTEMPT =5;
-    private static final String PREFIX_RESET_TOKEN="password_reset_token:";
+    @Value("${app.otp.verification-attempt.window-seconds}")
+    private long attemptVerificationWindow; // 15 phuts
+
+    @Value("${app.otp.expiration-seconds}")
+    private long otpExpirationTime; // 5 phút
+
+    @Value("${app.otp.max-attempts}")
+    private int verificationMaxAttempts;
+
+    @Value("${app.redis.verification.temp-token}")
+    private int tempTokenExpirationTime;
 
     @Override
     public void sendVerificationEmail(UserEntity userEntity) {
 
-        String token = String.format("%06d", new Random().nextInt(1000000));
-        redisService.set(PREFIX+userEntity.getEmail(), token, 300, TimeUnit.SECONDS);
-        redisService.set(PREFIX_ATTEMPT+userEntity.getEmail(), 1, TIME_ATTEMPTS_EXPIRATION, TimeUnit.SECONDS);
+        String token = String.format("%06d", new Random().nextInt(AppConstants.OTP_GENERATION_BOUND));
+        redisService.set(AppConstants.PREFIX_VERIFICATION_OTP +userEntity.getEmail(), token, otpExpirationTime, TimeUnit.SECONDS);
+        redisService.set(AppConstants.PREFIX_VERIFICATION_ATTEMPT+userEntity.getEmail(), AppConstants.INITIAL_ATTEMPT_VALUE, attemptVerificationWindow, TimeUnit.SECONDS);
 
         emailService.sendMail(userEntity.getEmail(), "Verification Code", "Your verification code: " + token);
     }
@@ -39,24 +49,24 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public void resendVerificationCode(String email) {
 
-        String attemptKey = PREFIX_ATTEMPT+email;
+        String attemptKey = AppConstants.PREFIX_VERIFICATION_ATTEMPT+email;
 
         Object attemptObj = redisService.get(attemptKey);
         int attempts = (attemptObj == null) ? 0 : Integer.parseInt(attemptObj.toString());
 
-        if(attempts >= MAX_ATTEMPT) {
+        if(attempts >= verificationMaxAttempts) {
             throw new IllegalArgumentException("Too many attempts! Please wait 15 minutes.");
         }
 
-        String newToken= String.format("%06d", new Random().nextInt(1000000));
+        String newToken= String.format("%06d", new Random().nextInt(AppConstants.OTP_GENERATION_BOUND));
 
-        redisService.set(PREFIX + email, newToken, EXPIRATION_TIME, TimeUnit.SECONDS);
+        redisService.set(AppConstants.PREFIX_VERIFICATION_OTP + email, newToken, otpExpirationTime, TimeUnit.SECONDS);
         redisService.increment(attemptKey);
 
         // xử lí trường hợp khi người dùng bỏ lâu quá, 20p sau mới ấn resent thì lúc đó attempt đã bị xoá
         // và khi redis tìm không thấy sẽ tự tạo ra attempt =1 nhưng không có ttl
         if (attemptObj == null) {
-            redisService.setExpire(attemptKey, TIME_ATTEMPTS_EXPIRATION, TimeUnit.SECONDS);
+            redisService.setExpire(attemptKey, attemptVerificationWindow, TimeUnit.SECONDS);
         }
 
         emailService.sendMail(email, "Verification Code", "Your verification code: " + newToken);
@@ -64,13 +74,10 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public VerifyOtpResponse verifyToken (String email, String inputToken) {
-//        UserVerificationToken vt= verificationRepo.findByUser_Email(email)
-//                .orElseThrow(()->new IllegalArgumentException("verification code not found"));
-
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
 
-        String key = PREFIX+email;
+        String key = AppConstants.PREFIX_VERIFICATION_OTP+email;
 
         if (!redisService.hasKey(key)) {
             throw new IllegalArgumentException("Code expired or invalid");
@@ -87,15 +94,15 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         UUID resetToken = UUID.randomUUID();
-        String resetTokenKey= PREFIX_RESET_TOKEN+resetToken;
-        redisService.set(resetTokenKey, email, 300, TimeUnit.SECONDS);
+        String resetTokenKey= AppConstants.PREFIX_RESET_TOKEN+resetToken;
+        redisService.set(resetTokenKey, email, tempTokenExpirationTime, TimeUnit.SECONDS);
 
         redisService.delete(key);
-        redisService.delete(PREFIX_ATTEMPT+email);
+        redisService.delete(AppConstants.PREFIX_VERIFICATION_ATTEMPT+email);
 
         return VerifyOtpResponse.builder()
                 .resetToken(resetToken.toString())
-                .expiredTime(300)
+                .expiredTime(tempTokenExpirationTime)
                 .build();
     }
 }

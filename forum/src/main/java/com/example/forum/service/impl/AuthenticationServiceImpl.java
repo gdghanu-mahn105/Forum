@@ -1,5 +1,6 @@
-package com.example.forum.auth;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.AppConstants;
 import com.example.forum.dto.request.LogoutRequest;
 import com.example.forum.dto.request.ResetPasswordRequest;
 import com.example.forum.dto.response.AuthenticationResponse;
@@ -12,22 +13,23 @@ import com.example.forum.exception.EmailAlreadyExistsException;
 import com.example.forum.exception.OtpVerificationException;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserDeviceRepository;
-import com.example.forum.security.JWTService;
+import com.example.forum.security.jwt.JWTService;
 import com.example.forum.dto.request.AuthenticationRequest;
 import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.security.TokenUtils;
-import com.example.forum.service.EmailService;
-import com.example.forum.service.RedisService;
-import com.example.forum.service.VerificationService;
+import com.example.forum.security.jwt.TokenUtils;
+import com.example.forum.service.*;
+import com.example.forum.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -42,27 +44,34 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AuthenticationService {
+public class AuthenticationServiceImpl implements AuthenticationService {
 
-    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final JWTService jwtService;
-    private final AuthenticationManager authManager;
-    private final VerificationService verificationService;
     private final RoleRepository roleRepository;
     private final UserDeviceRepository userDeviceRepository;
-    private final RedisService redisService;
+
+    private final VerificationService verificationService;
     private final LoginAttemptService loginAttemptService;
     private final TwoFactorService twoFactorService;
-    private final EmailService emailService;
     private final BackupCodeService backupCodeService;
-    private static final String PREFIX_RESET_TOKEN="password_reset_token:";
-    private static final String REVOKED_USER_KEY = "revoked_user:";
+    private final EmailService emailService;
+    private final CacheService cacheService;
+
+    private final AuthenticationManager authManager;
+    private final PasswordEncoder passwordEncoder;
+    private final JWTService jwtService;
+
+    @Value("${app.refresh-token.expiration}")
+    private long refreshTokenExpirationTime;
+
+    @Value("${app.redis.revoke.user.timeout}")
+    private long revokedByUserTimeout;
+
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
             .withZone(ZoneId.systemDefault());
 
-
+    @Override
     public UserSummaryDto register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -95,17 +104,18 @@ public class AuthenticationService {
                 user.getAvatarUrl());
     }
 
+    @Override
     public VerifyOtpResponse verifyCode(String email, String code) {
         return verificationService.verifyToken(email, code);
     }
 
+    @Override
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
 
-
-    public AuthenticationResponse authenticate(AuthenticationRequest request, String userAgent, String ip) {
-
-        if (loginAttemptService.isLocked(request.getEmail())){
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Your account is locked for 15 minutes because of over 5 attempts to enter correct password");
+        if(loginAttemptService.isLocked(request.getEmail())){
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Account is locked due to too many failed attempts. Please try again later.");
         }
+
         var user = userRepository.findByEmail(request.getEmail())
                  .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -126,17 +136,18 @@ public class AuthenticationService {
         } catch (LockedException ex) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is locked");
         }
-        String deviceId = request.getDeviceId();
+
         if (user.isTwoFactorEnabled()) {
             return AuthenticationResponse.builder()
                     .requiresTwoFactor(true)
                     .message("Two-factor authentication required")
                     .build();
         }
-        return finalizeLogin(user, request.getDeviceId(), userAgent, ip);
+        return finalizeLogin(user, request.getDeviceId());
     }
 
-    public AuthenticationResponse verifyTwoFactorLogin(String email, String otpCode, String deviceId, String userAgent, String ip){
+    @Override
+    public AuthenticationResponse verifyTwoFactorLogin(String email, String otpCode, String deviceId){
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -158,10 +169,15 @@ public class AuthenticationService {
             throw new OtpVerificationException("Invalid OTP Code");
         }
 
-        return finalizeLogin(user, deviceId, userAgent, ip);
+        return finalizeLogin(user, deviceId);
     }
 
-    public AuthenticationResponse finalizeLogin(UserEntity user, String deviceId, String userAgent, String ip){
+    @Override
+    public AuthenticationResponse finalizeLogin(UserEntity user, String deviceId){
+
+        String ip= RequestUtils.getClientIp();
+        String userAgent = RequestUtils.getUserAgent();
+
         if (deviceId == null) deviceId = UUID.randomUUID().toString();
         String rawRefreshToken = UUID.randomUUID().toString();
 
@@ -194,7 +210,7 @@ public class AuthenticationService {
 
     }
 
-
+    @Override
     public boolean saveUserDevice(UserEntity user, String deviceId, String rawRefreshToken, String ua, String ip){
 
         var existingDevice = userDeviceRepository.findByUserIdAndDeviceId(user.getUserId(), deviceId);
@@ -214,17 +230,26 @@ public class AuthenticationService {
         userDevice.setLastIp(ip);
         userDevice.setStatus(DeviceStatus.ACTIVE);
         userDevice.setLastActiveAt(Instant.now());
-        userDevice.setExpiresAt(Instant.now().plus(30, ChronoUnit.DAYS));
+        userDevice.setExpiresAt(Instant.now().plus(refreshTokenExpirationTime, ChronoUnit.MILLIS));
         userDeviceRepository.save(userDevice);
 
         return isNewDevice;
     }
 
+    @Override
     public AuthenticationResponse refreshToken(String rawRefreshToken) {
+
+
+
         if (rawRefreshToken== null || rawRefreshToken.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh Token is missing!");
         }
         String hashedInputToken = TokenUtils.hashToken(rawRefreshToken);
+
+        String redisKey = AppConstants.PREFIX_BLACKLIST_REFRESH_TOKEN + hashedInputToken;
+        if (cacheService.hasKey(redisKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Refresh Token has been revoked (Logout)");
+        }
 
         UserDevice userDevice = userDeviceRepository.findByRefreshTokenHash(hashedInputToken)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.FORBIDDEN,"Invalid Refresh Token"));
@@ -257,7 +282,7 @@ public class AuthenticationService {
                 .build();
     }
 
-
+    @Override
     public void logout(LogoutRequest request, String accessToken){
         String refreshToken = request.getRefreshToken();
 
@@ -265,15 +290,26 @@ public class AuthenticationService {
             return;
         }
 
-        String hash = TokenUtils.hashToken(refreshToken);
+        String refreshTokenHashed = TokenUtils.hashToken(refreshToken);
 
-        var userDeviceOptional= userDeviceRepository.findByRefreshTokenHash(hash);
+        var userDeviceOptional= userDeviceRepository.findByRefreshTokenHash(refreshTokenHashed);
+
+
 
         if(userDeviceOptional.isPresent()) {
             UserDevice userDevice = userDeviceOptional.get();
             userDevice.setStatus(DeviceStatus.REVOKED);
             userDeviceRepository.save(userDevice);
-            // device.setRefreshTokenHash(null);
+
+            long refreshTokenRemainTime = 0;
+            if(userDevice.getExpiresAt().isAfter(Instant.now())){
+                refreshTokenRemainTime = userDevice.getExpiresAt().toEpochMilli() - System.currentTimeMillis();
+            }
+
+            if(refreshTokenRemainTime > 0) {
+                String redisKey = AppConstants.PREFIX_BLACKLIST_REFRESH_TOKEN + refreshTokenHashed;
+                cacheService.set(redisKey, "revoked", refreshTokenRemainTime, TimeUnit.MILLISECONDS);
+            }
         }
 
         if (accessToken != null){
@@ -282,12 +318,12 @@ public class AuthenticationService {
             long remainTime =exprirationTime-currentTime;
 
             if (remainTime >0) {
-                redisService.set("BL_"+ accessToken, "logout", remainTime, TimeUnit.MILLISECONDS);
+                cacheService.set(AppConstants.BLACKLIST_KEY+ accessToken, "logout", remainTime, TimeUnit.MILLISECONDS);
             }
         }
     }
 
-
+    @Override
     public void forgotPassword(String email){
         System.out.println("Email nhận được: '" + email + "'");
         UserEntity user = userRepository.findByEmail(email)
@@ -296,23 +332,24 @@ public class AuthenticationService {
         verificationService.sendVerificationEmail(user);
     }
 
-
+    @Override
     public void resetPassword(ResetPasswordRequest request){
-        String resetTokenKey = PREFIX_RESET_TOKEN+request.getResetToken();
+        String resetTokenKey = AppConstants.PREFIX_RESET_TOKEN+request.getResetToken();
         UserEntity user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()-> new ResourceNotFoundException("User not found"));
 
-        Object storedEmail = redisService.get(resetTokenKey);
+        Object storedEmail = cacheService.get(resetTokenKey);
 
         if (storedEmail != null && storedEmail.toString().equals(request.getEmail())) {
             user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
             userRepository.save(user);
-            redisService.delete(resetTokenKey);
+            cacheService.delete(resetTokenKey);
         } else {
             throw new IllegalArgumentException("Invalid or expired reset token");
         }
     }
 
+    @Override
     public List<UserDeviceResponse> getAllDevice(UserEntity user, String currentUserDeviceId){
         List<UserDevice> userDeviceList = userDeviceRepository.findAllByUserIdAndStatus(user.getUserId(), DeviceStatus.ACTIVE);
         return userDeviceList.stream().map(userDevice -> UserDeviceResponse.builder()
@@ -325,7 +362,7 @@ public class AuthenticationService {
         ).collect(Collectors.toList());
     }
 
-    private static final String REVOKED_DEVICE_KEY = "revoked_device:";
+    @Override
     public void revokeDevice(UserEntity user, String deviceTargetId){
         UserDevice device = userDeviceRepository.findByUserIdAndDeviceId(user.getUserId(), deviceTargetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
@@ -335,25 +372,24 @@ public class AuthenticationService {
 
         long revocationTime = System.currentTimeMillis();
 
-        long accessTokenTTL = 1000; // vi access token la 900
-
-        redisService.set(
-                REVOKED_DEVICE_KEY+deviceTargetId,
+        cacheService.set(
+                AppConstants.REVOKED_DEVICE_KEY+deviceTargetId,
                 revocationTime,
-                accessTokenTTL,
+                revokedByUserTimeout, //1000 vi access token la 900
                 TimeUnit.SECONDS
         );
     }
 
+    @Transactional
+    @Override
     public void revokeAllDevice(UserEntity currentUser){
         userDeviceRepository.revokeAllByUserId(currentUser.getUserId());
         long revocationTime = System.currentTimeMillis();
-        long accessTokenTTL = 3600;
 
-        redisService.set(
-                REVOKED_USER_KEY +currentUser.getUserId(),
+        cacheService.set(
+                AppConstants.REVOKED_USER_KEY +currentUser.getUserId(),
                 String.valueOf(revocationTime),
-                accessTokenTTL,
+                revokedByUserTimeout,
                 TimeUnit.SECONDS
         );
     }

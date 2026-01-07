@@ -1,16 +1,19 @@
-package com.example.forum.auth;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.AppConstants;
 import com.example.forum.dto.response.TwoFactorResponse;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.OtpVerificationException;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.BackupCodeRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.security.SecurityService;
-import com.example.forum.service.RedisService;
+import com.example.forum.service.BackupCodeService;
+import com.example.forum.service.CacheService;
+import com.example.forum.service.TwoFactorService;
+import com.example.forum.utils.SecurityUtils;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,20 +21,23 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class TwoFactorService {
+public class TwoFactorServiceImpl implements TwoFactorService {
     private final GoogleAuthenticator googleAuthenticator;
-    private final UserRepository userRepository;
-    private final RedisService redisService;
-    private static final String PREFIX_TEMPT_2AF = "tempt:2af:";
+    private final SecurityUtils securityService;
+    private final CacheService redisService;
     private final BackupCodeService backupCodeService;
-    private final BackupCodeRepository backupCodeRepository;
-    private final SecurityService securityService;
 
-    public TwoFactorService(UserRepository userRepository,
-                            RedisService redisService,
-                            BackupCodeService backupCodeService,
-                            BackupCodeRepository backupCodeRepository,
-                            SecurityService securityService){
+    private final BackupCodeRepository backupCodeRepository;
+    private final UserRepository userRepository;
+
+    @Value("${app.2fa.secret.timeout}")
+    private long setup2faTimeout;
+
+    public TwoFactorServiceImpl(UserRepository userRepository,
+                                RedisService redisService,
+                                BackupCodeServiceImpl backupCodeService,
+                                BackupCodeRepository backupCodeRepository,
+                                SecurityUtils securityService){
         GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
                 .setTimeStepSizeInMillis(30000)
                 .setWindowSize(1)
@@ -45,25 +51,29 @@ public class TwoFactorService {
         this.securityService=securityService;
     }
 
+    @Override
     public String generateNewSecret(){
         return googleAuthenticator.createCredentials().getKey();
     }
 
+    @Override
     public String generateQrCodeUri(String secret, String email){
         return String.format("otpauth://totp/MyForum:%s?secret=%s&issuer=MyForum", email, secret);
     }
 
+    @Override
     public boolean isOtpValid(String secret, int code) {
         return googleAuthenticator.authorize(secret, code);
     }
 
+    @Override
     public TwoFactorResponse enableTwoFactor(String email){
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found"));
 
         String secret = generateNewSecret();
         String qrUrl = generateQrCodeUri(secret, email);
-        redisService.set(PREFIX_TEMPT_2AF+email, secret, 900, TimeUnit.SECONDS);
+        redisService.set(AppConstants.PREFIX_TEMP_2FA+email, secret,setup2faTimeout, TimeUnit.SECONDS);
 
         return TwoFactorResponse.builder()
                 .secret(secret)
@@ -71,11 +81,14 @@ public class TwoFactorService {
                 .build();
     }
 
+    @Override
     public List<String> verifyOtp(String email, int otp){
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new ResourceNotFoundException("User not found"));
 
-        Object storedSecret = redisService.get(PREFIX_TEMPT_2AF + email);
+        String keyTemp2fa = AppConstants.PREFIX_TEMP_2FA + email;
+
+        Object storedSecret = redisService.get(keyTemp2fa);
         if (storedSecret == null) {
             throw new ResourceNotFoundException("Your code is expired or unavailable. Please retake enable/ setup step.");
         }
@@ -90,7 +103,7 @@ public class TwoFactorService {
             user.setTwoFactorSecret(secretStr);
             userRepository.save(user);
         }
-        redisService.delete(PREFIX_TEMPT_2AF + email);
+        redisService.delete(keyTemp2fa);
 
 
         return backupCodeService.generateBackupCode(user);
@@ -98,6 +111,7 @@ public class TwoFactorService {
     }
 
     @Transactional
+    @Override
     public void disable2fa(UserEntity user, String password){
 
         securityService.validatePassword(user, password);
