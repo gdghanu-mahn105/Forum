@@ -1,4 +1,4 @@
-package com.example.forum.security;
+package com.example.forum.utils;
 
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.NotLoggedInException;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class SecurityService {
+public class SecurityUtils {
     private final PasswordEncoder passwordEncoder;
 
     public UserEntity getCurrentUser() {

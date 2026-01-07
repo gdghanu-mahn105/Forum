@@ -1,9 +1,9 @@
 package com.example.forum.controller;
 
-import com.example.forum.auth.AuthenticationService;
+import com.example.forum.service.impl.AuthenticationServiceImpl;
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.security.JWTService;
+import com.example.forum.security.jwt.JWTService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class DeviceController {
     private final JWTService jwtService;
-    private final AuthenticationService authenticationService;
+    private final AuthenticationServiceImpl authenticationService;
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping("/device-list")

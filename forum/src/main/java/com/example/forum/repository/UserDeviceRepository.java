@@ -19,7 +19,6 @@ public interface UserDeviceRepository extends JpaRepository<UserDevice, Long> {
     List<UserDevice> findAllByUserIdAndStatus(Long userId, DeviceStatus active);
 
     @Modifying
-    @Transactional
     @Query(
             value = """
                     update user_devices set status ='REVOKED' where user_id =:userId

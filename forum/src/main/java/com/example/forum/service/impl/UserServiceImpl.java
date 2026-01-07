@@ -1,13 +1,13 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
-import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserRepository;
+import com.example.forum.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +24,7 @@ import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;

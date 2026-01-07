@@ -1,4 +1,4 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
@@ -7,7 +7,9 @@ import com.example.forum.entity.*;
 import com.example.forum.entity.Enum.EventType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.*;
-import com.example.forum.security.SecurityService;
+import com.example.forum.utils.SecurityUtils;
+import com.example.forum.service.NotificationService;
+import com.example.forum.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,7 +31,7 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepo;
     private final CategoryRepository categoryRepo;
     private final TagRepository tagRepo;
-    private final SecurityService securityService;
+    private final SecurityUtils securityService;
     private final NotificationService notificationService;
     private final CommentRepository commentRepository;
     private final VoteRepository voteRepository;

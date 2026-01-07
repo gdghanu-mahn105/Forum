@@ -1,6 +1,6 @@
 package com.example.forum.controller;
 
-import com.example.forum.auth.TwoFactorService;
+import com.example.forum.service.impl.TwoFactorServiceImpl;
 import com.example.forum.dto.request.OtpInputRequest;
 import com.example.forum.dto.request.PasswordConfirmRequest;
 import com.example.forum.dto.response.ApiResponse;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/forum/user/2af")
 @RequiredArgsConstructor
 public class TwoFactorController {
-    private final TwoFactorService twoFactorService;
+    private final TwoFactorServiceImpl twoFactorService;
 
     @GetMapping("/setup")
     public ResponseEntity<?> setup2af(

@@ -1,4 +1,4 @@
-package com.example.forum.security;
+package com.example.forum.security.jwt;
 
 import com.example.forum.entity.UserEntity;
 import io.jsonwebtoken.Jwts;
@@ -25,7 +25,8 @@ public class JWTService {
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 15;
+    @Value("${jwt.access-token.expiration}")
+    private long accessTokenExpirationTime;
 
     public boolean isValidToken(String token , UserDetails userDetails) {
         final String userName = userDetails.getUsername();
@@ -91,7 +92,7 @@ public class JWTService {
         extraClaims.put("userId", userDetails.getUserId());
         extraClaims.put("roles", roles);
         Date now = new Date(System.currentTimeMillis());
-        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpirationTime);
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())

@@ -1,4 +1,4 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
 import com.example.forum.dto.projection.UserSummaryProjection;
 import com.example.forum.dto.response.PagedResponse;
@@ -12,7 +12,9 @@ import com.example.forum.exception.BadRequestException;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.FollowRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.security.SecurityService;
+import com.example.forum.utils.SecurityUtils;
+import com.example.forum.service.FollowService;
+import com.example.forum.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,9 +27,9 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class FollowServiceImpl implements FollowService{
+public class FollowServiceImpl implements FollowService {
 
-    private final SecurityService securityService;
+    private final SecurityUtils securityService;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;

@@ -1,6 +1,7 @@
-package com.example.forum.security;
+package com.example.forum.security.jwt;
 
-import com.example.forum.service.RedisService;
+import com.example.forum.constant.AppConstants;
+import com.example.forum.service.impl.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,12 +31,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             "/v3/api-docs",
             "/swagger-ui",
             "/swagger-resources",
-            "/webjars",
-            "/forum/auth"
-//            "/forum/home",
-//            "/login/oauth2",
-//            "/forum/posts",
-//            "/forum/tags"
+            "/webjars"
     );
 
     @Override
@@ -70,7 +66,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         jwtToken = authHeader.substring(7);
 
-        if (redisService.hasKey("BL_"+jwtToken)){
+        if (redisService.hasKey(AppConstants.BLACKLIST_KEY +jwtToken)){
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token has been revoked (Logout)");
             return;
@@ -81,11 +77,11 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         Date iatDate= jwtService.extractIssuedDate(jwtToken);
         String deviceId = jwtService.extractDeviceId(jwtToken);
 
-        if(deviceId!= null && isDeviceRevoked(deviceId, iatDate, userId)){{
+        if(deviceId!= null && isDeviceRevoked(deviceId, iatDate, userId)){
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Device session revoked");
             return;
-        }}
+        }
 
 
         if(userEmail !=null && SecurityContextHolder.getContext().getAuthentication()==null) {
@@ -109,7 +105,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isDeviceRevoked(String deviceId, Date tokenIssuedAt, Long userId){
 
-        String userKey = "revoked_user:" + userId;
+        String userKey = AppConstants.REVOKED_USER_KEY + userId;
         Object userRevokedAt = redisService.get(userKey);
         if (userRevokedAt != null) {
             if (tokenIssuedAt.getTime() < Long.parseLong(userRevokedAt.toString())) {
@@ -118,7 +114,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
 
 
-        String redisKey = "revoked_device:" + deviceId;
+        String redisKey = AppConstants.REVOKED_DEVICE_KEY + deviceId;
         Object revokedAtValue = redisService.get(redisKey);
 
         if (revokedAtValue != null) {

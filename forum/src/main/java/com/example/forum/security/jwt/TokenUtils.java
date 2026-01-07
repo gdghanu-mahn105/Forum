@@ -1,4 +1,4 @@
-package com.example.forum.security;
+package com.example.forum.security.jwt;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

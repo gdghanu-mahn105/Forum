@@ -1,4 +1,4 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
 import com.example.forum.dto.projection.CommentProjection;
 import com.example.forum.dto.request.CreateCommentRequest;
@@ -13,7 +13,9 @@ import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.CommentRepository;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.security.SecurityService;
+import com.example.forum.utils.SecurityUtils;
+import com.example.forum.service.CommentService;
+import com.example.forum.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
@@ -30,7 +32,7 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final PostRepository postRepository;
-    private final SecurityService securityService;
+    private final SecurityUtils securityService;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;

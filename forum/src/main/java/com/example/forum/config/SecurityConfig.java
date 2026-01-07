@@ -1,10 +1,9 @@
 package com.example.forum.config;
 
-import com.example.forum.auth.CustomOidc2UserService;
-import com.example.forum.auth.CustomOAuthSuccessHandler;
-import com.example.forum.security.JWTAuthenticationFilter;
+import com.example.forum.security.oauth2.CustomOidc2UserService;
+import com.example.forum.security.oauth2.CustomOAuthSuccessHandler;
+import com.example.forum.security.jwt.JWTAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,12 +14,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-
-import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 

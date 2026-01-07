@@ -1,8 +1,9 @@
-package com.example.forum.auth;
+package com.example.forum.service.impl;
 
 import com.example.forum.entity.BackupCode;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.BackupCodeRepository;
+import com.example.forum.service.BackupCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,11 +14,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class BackupCodeService {
+public class BackupCodeServiceImpl implements BackupCodeService {
 
     private final BackupCodeRepository backupCodeRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Override
     public List<String> generateBackupCode(UserEntity user){
         backupCodeRepository.deleteByUserEntityUserId(user.getUserId());
 
@@ -38,7 +40,7 @@ public class BackupCodeService {
 
         return rawCodeList;
     }
-
+    @Override
     public boolean verifyBackupCode(UserEntity user, String code){
         List<BackupCode> BackupCodeEntities = backupCodeRepository.findByUserEntityUserId(user.getUserId());
 
