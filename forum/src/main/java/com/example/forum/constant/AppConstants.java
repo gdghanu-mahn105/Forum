@@ -18,6 +18,11 @@ public final class AppConstants {
     public static final String PREFIX_VERIFICATION_ATTEMPT ="attempts:verification:otp:";
     public static final String PREFIX_RESET_TOKEN="password_reset_token:";
 
+    // redis value
+    public static final String REDIS_VALUE_REVOKED ="revoked";
+    public static final String REDIS_VALUE_LOGOUT ="logout";
+    public static final String REDIS_VALUE_LOCKED="locked";
+
     // user role
     public static final String ROLE_USER ="ROLE_USER";
     public static final String ROLE_ADMIN ="ROLE_ADMIN";

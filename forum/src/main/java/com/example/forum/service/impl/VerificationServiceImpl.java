@@ -1,6 +1,7 @@
 package com.example.forum.service.impl;
 
 import com.example.forum.constant.AppConstants;
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
@@ -55,7 +56,7 @@ public class VerificationServiceImpl implements VerificationService {
         int attempts = (attemptObj == null) ? 0 : Integer.parseInt(attemptObj.toString());
 
         if(attempts >= verificationMaxAttempts) {
-            throw new IllegalArgumentException("Too many attempts! Please wait 15 minutes.");
+            throw new IllegalArgumentException(MessageConstants.OTP_LIMIT_REACHED);
         }
 
         String newToken= String.format("%06d", new Random().nextInt(AppConstants.OTP_GENERATION_BOUND));
@@ -75,17 +76,17 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public VerifyOtpResponse verifyToken (String email, String inputToken) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         String key = AppConstants.PREFIX_VERIFICATION_OTP+email;
 
         if (!redisService.hasKey(key)) {
-            throw new IllegalArgumentException("Code expired or invalid");
+            throw new IllegalArgumentException(MessageConstants.OTP_INVALID);
         }
 
         Object verificationToken = redisService.get(key);
         if(!verificationToken.toString().equals(inputToken)) {
-            throw new IllegalArgumentException("Wrong code");
+            throw new IllegalArgumentException(MessageConstants.WRONG_OTP_CODE);
         }
 
         if (!user.getIsVerified()) {

@@ -1,5 +1,6 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.*;
@@ -43,7 +44,7 @@ public class PostServiceImpl implements PostService {
         Long userId = currentUser.getUserId();
 
         UserEntity creator = userRepo.findById(userId)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
 //        Set<Category> categories = new HashSet<>(categoryRepo.findAllById(request.getCategoryIds()));
         Set<Tag> tags= new HashSet<>(tagRepo.findAllById(request.getTagIds()));
@@ -93,7 +94,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public void removeMediaFromPost(Long postId, Long mediaId) {
         PostEntity post = postRepo.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         post.getMediaFiles().removeIf(media -> media.getId().equals(mediaId));
         // orphanRemoval = true => Hibernate sẽ xóa khỏi DB
@@ -187,7 +188,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostResponseDto getPost(Long postId) {
         PostEntity post= postRepo.findById(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         return mapToPostResponseDto(post, null);
     }
 
@@ -222,17 +223,17 @@ public class PostServiceImpl implements PostService {
     public PostResponseDto updatePost(Long postId, UpdatePostRequest request) {
 
         PostEntity post = postRepo.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         if(post.getIsArchived()){
-            throw new ResourceNotFoundException("Post not found!");
+            throw new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND);
         }
 
         UserEntity currentUser = securityService.getCurrentUser();  // dùng service
         Long currentUserId = currentUser.getUserId();
 
         if(!post.getCreator().getUserId().equals(currentUserId)) {
-            throw new AccessDeniedException("You are not have permission to update this post");
+            throw new AccessDeniedException(MessageConstants.NO_PERMISSION_EDIT_POST);
         }
 
         if(request.getTitle() !=null && !request.getTitle().isBlank()) {
@@ -271,17 +272,17 @@ public class PostServiceImpl implements PostService {
     @Override
     public void softDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         if(post.getIsArchived()){
-            throw new ResourceNotFoundException("Post not found!");
+            throw new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND);
         }
 
-        UserEntity currentUser = securityService.getCurrentUser();  // dùng service
+        UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId = currentUser.getUserId();
 
         if(!currentUserId.equals(post.getCreator().getUserId())) {
-            throw new AccessDeniedException("You are not have permission to delete this post");
+            throw new AccessDeniedException(MessageConstants.NO_PERMISSION_EDIT_POST);
         }
         post.setIsArchived(true);
         postRepo.save(post);
@@ -290,7 +291,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public void hardDeletePost(Long id) {
         PostEntity post= postRepo.findByPostId(id)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         postRepo.delete(post);
     }
 }

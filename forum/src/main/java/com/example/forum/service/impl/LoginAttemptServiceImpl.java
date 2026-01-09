@@ -39,7 +39,7 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
             redisService.setExpire(failKey, failCountWindow, TimeUnit.SECONDS);
         }
         if (attempts >= maxLoginAttempt) {
-            redisService.set(lockKey, "LOCKED", lockTimeDuration, TimeUnit.SECONDS);
+            redisService.set(lockKey, AppConstants.REDIS_VALUE_LOCKED, lockTimeDuration, TimeUnit.SECONDS);
 
             redisService.delete(failKey);
         }

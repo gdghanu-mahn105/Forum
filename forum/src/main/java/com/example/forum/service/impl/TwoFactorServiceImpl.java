@@ -1,6 +1,7 @@
 package com.example.forum.service.impl;
 
 import com.example.forum.constant.AppConstants;
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.response.TwoFactorResponse;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.OtpVerificationException;
@@ -69,7 +70,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Override
     public TwoFactorResponse enableTwoFactor(String email){
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         String secret = generateNewSecret();
         String qrUrl = generateQrCodeUri(secret, email);
@@ -84,19 +85,19 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Override
     public List<String> verifyOtp(String email, int otp){
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         String keyTemp2fa = AppConstants.PREFIX_TEMP_2FA + email;
 
         Object storedSecret = redisService.get(keyTemp2fa);
         if (storedSecret == null) {
-            throw new ResourceNotFoundException("Your code is expired or unavailable. Please retake enable/ setup step.");
+            throw new ResourceNotFoundException(MessageConstants.CODE_2FA_EXPIRED_TRY_AGAIN);
         }
 
         String secretStr = storedSecret.toString();
         boolean result = isOtpValid(secretStr,otp);
         if (!result) {
-            throw new OtpVerificationException("Invalid OTP");
+            throw new OtpVerificationException(MessageConstants.OTP_INVALID);
         }
         if(!user.isTwoFactorEnabled()){
             user.setTwoFactorEnabled(true);

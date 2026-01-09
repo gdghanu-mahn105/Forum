@@ -1,5 +1,6 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.NotificationProjection;
 import com.example.forum.dto.response.NotificationDto;
 import com.example.forum.dto.response.PagedResponse;
@@ -135,7 +136,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         UserEntity currentUser= securityService.getCurrentUser();
         if (currentUser == null) {
-            throw new NotLoggedInException("User not logged in");
+            throw new NotLoggedInException(MessageConstants.LOGIN_REQUIRED);
         }
         return notificationRepository.countByUserEntityUserIdAndIsReadFalse(currentUser.getUserId());
     }
@@ -151,7 +152,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void markAllAsRead() {
         UserEntity currentUser= securityService.getCurrentUser();
         if (currentUser == null) {
-            throw new NotLoggedInException("User not logged in");
+            throw new NotLoggedInException(MessageConstants.LOGIN_REQUIRED);
         }
         List<Notification> readList =notificationRepository.findAllByUserEntityUserIdAndIsReadFalse(currentUser.getUserId())
                 .stream().peek(n-> n.setIsRead(true)).toList();
@@ -173,7 +174,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private Notification checkNotificationExist(Long id) {
         return notificationRepository.findByIdAndIsArchivedFalse(id)
-                .orElseThrow(()-> new ResourceNotFoundException("Notification not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.NOTIFICATION_NOT_FOUND));
     }
 
     private List<NotificationDto> mapToNotificationDto(Page<NotificationProjection> listPage){

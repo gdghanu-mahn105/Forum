@@ -1,5 +1,6 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.CommentProjection;
 import com.example.forum.dto.request.CreateCommentRequest;
 import com.example.forum.dto.request.UpdateCommentRequest;
@@ -41,11 +42,11 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponseDto createComment(Long postId, CreateCommentRequest request) {
 
         PostEntity post= postRepository.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         UserEntity user = userRepository.findById(currentUser.getUserId())
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         CommentEntity comment= CommentEntity.builder()
                 .postEntity(post)
@@ -63,7 +64,7 @@ public class CommentServiceImpl implements CommentService {
             comment.setParentId(null);
         } else {
             CommentEntity parentComment = commentRepository.findById(request.getParentId())
-                    .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+                    .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
             comment.setParentId(request.getParentId());
             newPath = request.getParentPath() + request.getParentId() +"/";
         }
@@ -91,7 +92,7 @@ public class CommentServiceImpl implements CommentService {
                     "COMMENT"
             );
             CommentEntity parentComment = commentRepository.findById(request.getParentId())
-                    .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+                    .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
             notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
             notificationService.notifySpecificUser(parentComment.getUserEntity(), notificationEvent);
 
@@ -114,7 +115,7 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentDto> getListOfCommentAndCountReplyComment(Long postId) {
 
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         List<CommentProjection> rows = commentRepository.findCommentsWithReplyCountByPostId(postId);
 
@@ -142,13 +143,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public CommentDto updateComment(Long commentId, UpdateCommentRequest request) {
         CommentEntity comment = commentRepository.findByCommentIdAndIsDeletedFalse(commentId)
-                .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId = currentUser.getUserId();
 
         if(currentUserId != comment.getUserEntity().getUserId()) {
-            throw new AccessDeniedException("You can only edit your own comment!");
+            throw new AccessDeniedException(MessageConstants.EDIT_OWN_COMMENT);
         }
 
         comment.setCommentContent(request.getUpdatedContent());
@@ -160,13 +161,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void softDeletedComment(Long commentId) {
         CommentEntity comment = commentRepository.findByCommentIdAndIsDeletedFalse(commentId)
-                .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId = currentUser.getUserId();
 
         if(currentUserId != comment.getUserEntity().getUserId()) {
-            throw new AccessDeniedException("You can only delete your own comment!");
+            throw new AccessDeniedException(MessageConstants.EDIT_OWN_COMMENT);
         }
         comment.setIsDeleted(true);
         commentRepository.save(comment);
@@ -175,13 +176,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void hardDeletedComment(Long commentId) {
         CommentEntity comment = commentRepository.findByCommentIdAndIsDeletedFalse(commentId)
-                .orElseThrow(()-> new ResourceNotFoundException("Comment not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId = currentUser.getUserId();
 
         if(currentUserId != comment.getUserEntity().getUserId()) {
-            throw new AccessDeniedException("You can only delete your own comment!");
+            throw new AccessDeniedException(MessageConstants.EDIT_OWN_COMMENT);
         }
         commentRepository.delete(comment);
     }
@@ -189,7 +190,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public List<CommentDto> getListOfCommentAndCountReplyComment(Long postId, String parentPath, Long parentId) {
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         List<CommentProjection> rows = commentRepository.findCommentsWithReplyCountByPostId(postId, parentPath, parentId);
 
@@ -216,15 +217,13 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public PagedResponse<CommentResponseDto> getTopLevelComments(Long postId, Pageable pageable) {
-        PostEntity post = postRepository.findByPostId(postId).orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+        PostEntity post = postRepository.findByPostId(postId).orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         Page<CommentEntity> commentPage = commentRepository
                 .findByPostEntity_PostIdAndParentIdIsNull(postId, pageable);
 
 
         Page<CommentResponseDto> dtoPage = commentPage.map(this::mapToCommentResponseDto);
 
-        // 3. Tạo và trả về đối tượng PagedResponse
-        // (Giả sử class PagedResponse của bạn có constructor như sau)
         return new PagedResponse<>(
                 dtoPage.getContent(),      // List<CommentResponseDto>
                 dtoPage.getNumber(),       // Số trang hiện tại
@@ -239,7 +238,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public List<CommentResponseDto> getReplies(Long parentId) {
         if (!commentRepository.existsById(parentId)) {
-            throw new ResourceNotFoundException("Parent comment not found!");
+            throw new ResourceNotFoundException(MessageConstants.PARENT_COMMENT_NOT_FOUND);
         }
 
         List<CommentEntity> replies = commentRepository.findByParentIdOrderByCreatedAtAsc(parentId);

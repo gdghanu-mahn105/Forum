@@ -1,6 +1,7 @@
 package com.example.forum.service.impl;
 
 import com.example.forum.constant.AppConstants;
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.request.LogoutRequest;
 import com.example.forum.dto.request.ResetPasswordRequest;
 import com.example.forum.dto.response.AuthenticationResponse;
@@ -75,15 +76,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public UserSummaryDto register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new EmailAlreadyExistsException( "Email was used");
+            throw new EmailAlreadyExistsException(MessageConstants.EMAIL_ALREADY_EXISTS);
         }
 
         if(request.getPassword()==null){
-            throw new IllegalArgumentException("Password must be filled");
+            throw new IllegalArgumentException(MessageConstants.PASSWORD_REQUIRED);
         }
 
-        Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(()-> new RuntimeException("role not found"));
+        Role userRole = roleRepository.findByName(AppConstants.ROLE_USER)
+                .orElseThrow(()-> new RuntimeException(MessageConstants.ROLE_NOT_FOUND));
 
 
         var user= UserEntity.builder()
@@ -113,11 +114,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
 
         if(loginAttemptService.isLocked(request.getEmail())){
-            throw new ResponseStatusException(HttpStatus.LOCKED, "Account is locked due to too many failed attempts. Please try again later.");
+            throw new ResponseStatusException(HttpStatus.LOCKED,MessageConstants.ACCOUNT_LOCKED_DUE_TO_OVER_ATTEMPTS);
         }
 
         var user = userRepository.findByEmail(request.getEmail())
-                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, MessageConstants.USER_NOT_FOUND));
 
 
         try {
@@ -130,17 +131,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             loginAttemptService.loginSucceeded(request.getEmail());
         } catch (BadCredentialsException ex) {
             loginAttemptService.loginFail(request.getEmail());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,MessageConstants.LOGIN_FAILED);
         } catch (DisabledException ex){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Your account is not verified");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,MessageConstants.ACCOUNT_NOT_VERIFIED);
         } catch (LockedException ex) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is locked");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,MessageConstants.ACCOUNT_LOCKED );
         }
 
         if (user.isTwoFactorEnabled()) {
             return AuthenticationResponse.builder()
                     .requiresTwoFactor(true)
-                    .message("Two-factor authentication required")
+                    .message(MessageConstants.REQUIRE_TWO_FACTOR_AUTHENTICATION)
                     .build();
         }
         return finalizeLogin(user, request.getDeviceId());
@@ -149,10 +150,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticationResponse verifyTwoFactorLogin(String email, String otpCode, String deviceId){
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         if (!user.isTwoFactorEnabled()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "2FA is not enabled for this user");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,MessageConstants.TWO_FACTOR_NOT_ENABLED);
         }
 
         boolean isValid = false;
@@ -166,7 +167,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         if (!isValid) {
-            throw new OtpVerificationException("Invalid OTP Code");
+            throw new OtpVerificationException(MessageConstants.OTP_INVALID);
         }
 
         return finalizeLogin(user, deviceId);
@@ -239,31 +240,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticationResponse refreshToken(String rawRefreshToken) {
 
-
-
         if (rawRefreshToken== null || rawRefreshToken.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh Token is missing!");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, MessageConstants.MISSING_REFRESH_TOKEN);
         }
         String hashedInputToken = TokenUtils.hashToken(rawRefreshToken);
 
         String redisKey = AppConstants.PREFIX_BLACKLIST_REFRESH_TOKEN + hashedInputToken;
         if (cacheService.hasKey(redisKey)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Refresh Token has been revoked (Logout)");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,MessageConstants.REFRESH_TOKEN_INVALID_REVOKED);
         }
 
         UserDevice userDevice = userDeviceRepository.findByRefreshTokenHash(hashedInputToken)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.FORBIDDEN,"Invalid Refresh Token"));
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.FORBIDDEN, MessageConstants.REFRESH_TOKEN_INVALID));
 
         if(userDevice.getExpiresAt().isBefore(Instant.now())){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Refresh Token Expired");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, MessageConstants.REFRESH_TOKEN_EXPIRED);
         }
 
         if (userDevice.getStatus() != DeviceStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Token Revoked");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, MessageConstants.REFRESH_TOKEN_INVALID_REVOKED);
         }
 
         UserEntity user = userRepository.findById(userDevice.getUserId())
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, MessageConstants.USER_NOT_FOUND));
 
         userDevice.setLastActiveAt(Instant.now());
         userDeviceRepository.save(userDevice);
@@ -308,7 +307,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             if(refreshTokenRemainTime > 0) {
                 String redisKey = AppConstants.PREFIX_BLACKLIST_REFRESH_TOKEN + refreshTokenHashed;
-                cacheService.set(redisKey, "revoked", refreshTokenRemainTime, TimeUnit.MILLISECONDS);
+                cacheService.set(redisKey, AppConstants.REDIS_VALUE_REVOKED, refreshTokenRemainTime, TimeUnit.MILLISECONDS);
             }
         }
 
@@ -318,17 +317,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             long remainTime =exprirationTime-currentTime;
 
             if (remainTime >0) {
-                cacheService.set(AppConstants.BLACKLIST_KEY+ accessToken, "logout", remainTime, TimeUnit.MILLISECONDS);
+                cacheService.set(AppConstants.BLACKLIST_KEY+ accessToken, AppConstants.REDIS_VALUE_LOGOUT, remainTime, TimeUnit.MILLISECONDS);
             }
         }
     }
 
     @Override
     public void forgotPassword(String email){
-        System.out.println("Email nhận được: '" + email + "'");
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
-        System.out.println("forgot - authservice2");
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
         verificationService.sendVerificationEmail(user);
     }
 
@@ -336,7 +333,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resetPassword(ResetPasswordRequest request){
         String resetTokenKey = AppConstants.PREFIX_RESET_TOKEN+request.getResetToken();
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         Object storedEmail = cacheService.get(resetTokenKey);
 
@@ -345,7 +342,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             userRepository.save(user);
             cacheService.delete(resetTokenKey);
         } else {
-            throw new IllegalArgumentException("Invalid or expired reset token");
+            throw new IllegalArgumentException(MessageConstants.INVALID_RESET_PASSWORD_TOKEN);
         }
     }
 
@@ -365,7 +362,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public void revokeDevice(UserEntity user, String deviceTargetId){
         UserDevice device = userDeviceRepository.findByUserIdAndDeviceId(user.getUserId(), deviceTargetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Device not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.DEVICE_NOT_FOUND));
 
         device.setStatus(DeviceStatus.REVOKED);
         userDeviceRepository.save(device);

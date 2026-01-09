@@ -1,5 +1,7 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.AppConstants;
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.entity.Role;
@@ -25,11 +27,11 @@ public class AdminServiceImpl implements AdminService {
     public UserSummaryDto createAdmin(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new IllegalArgumentException(MessageConstants.EMAIL_ALREADY_EXISTS);
         }
 
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseThrow(() -> new IllegalArgumentException("Role ADMIN not found"));
+        Role adminRole = roleRepository.findByName(AppConstants.ROLE_ADMIN)
+                .orElseThrow(() -> new IllegalArgumentException(MessageConstants.ROLE_NOT_FOUND));
 
         UserEntity admin = new UserEntity();
         admin.setUserName(request.getUserName());

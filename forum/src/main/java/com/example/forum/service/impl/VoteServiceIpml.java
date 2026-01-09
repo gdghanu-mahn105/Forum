@@ -1,5 +1,6 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
 import com.example.forum.entity.Enum.EventType;
@@ -32,7 +33,7 @@ public class VoteServiceIpml implements VoteService {
     public PostVoteResponse votePost(Long postId, VoteType newVote) {
 
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId= currentUser.getUserId();
@@ -75,7 +76,7 @@ public class VoteServiceIpml implements VoteService {
     @Override
     public List<VoteProjection> findVoteOfPost(Long postId, VoteType voteType) {
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         return voteRepository.findVotesOfPost(postId, voteType.name());
     }
 

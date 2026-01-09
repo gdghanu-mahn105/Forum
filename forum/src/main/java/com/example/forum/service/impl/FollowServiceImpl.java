@@ -1,5 +1,6 @@
 package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.UserSummaryProjection;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserSummaryDto;
@@ -38,13 +39,13 @@ public class FollowServiceImpl implements FollowService {
     public void followUser(Long followingId) {
 
         UserEntity following = userRepository.findById(followingId)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         UserEntity follower = securityService.getCurrentUser(); // user
         Long currentFollowerId= follower.getUserId();
 
         if(currentFollowerId==followingId){
-            throw new BadRequestException("You can not follow yourself!");
+            throw new BadRequestException(MessageConstants.CANT_FOLLOW_YOURSELF);
         }
 
         FollowId followId = new FollowId(currentFollowerId, followingId);
@@ -52,7 +53,7 @@ public class FollowServiceImpl implements FollowService {
             Follow newFollow = new Follow(followId,follower,following, LocalDateTime.now());
             followRepository.save(newFollow);
         } else {
-            throw new BadRequestException("You already followed this user");
+            throw new BadRequestException(MessageConstants.ALREADY_FOLLOWED);
         }
 
         NotificationEvent newNotificationEvent = notificationService.createEvent(
@@ -154,7 +155,7 @@ public class FollowServiceImpl implements FollowService {
             Follow existFollow= (Follow) existingFollowId.get();
             followRepository.delete(existFollow);
         } else  {
-            throw new BadRequestException("You haven't followed this user");
+            throw new BadRequestException(MessageConstants.HAVE_NOT_FOLLOW);
         }
     }
 
@@ -172,12 +173,12 @@ public class FollowServiceImpl implements FollowService {
         if (existingFollow.isPresent()) {
             followRepository.delete(existingFollow.get());
         } else {
-            throw new BadRequestException("This user is not following you");
+            throw new BadRequestException(MessageConstants.USER_HAVE_NOT_FOLLOW);
         }
     }
 
     private UserEntity getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
     }
 }
