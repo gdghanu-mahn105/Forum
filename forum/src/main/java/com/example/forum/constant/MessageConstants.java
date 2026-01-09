@@ -68,5 +68,9 @@ public class MessageConstants {
 
     // notification
     public static final String NOTIFICATION_NOT_FOUND="Notification not found.";
+
+    // email
+    public static final String SUBJECT_OTP_MAIL = "Your verification code (OTP)";
+    public static final String SUBJECT_NEW_DEVICE_LOGIN = "Security Alert: New Login Detected";
 }
 

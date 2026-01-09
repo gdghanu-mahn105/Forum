@@ -69,7 +69,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private long revokedByUserTimeout;
 
 
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(AppConstants.DATE_TIME_FORMAT)
             .withZone(ZoneId.systemDefault());
 
     @Override
@@ -184,16 +184,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         boolean isNewDevice =saveUserDevice(user, deviceId, rawRefreshToken, userAgent, ip);
         if (isNewDevice){
-            String emailBody = String.format(
-                    "We noticed a new login to your account.\n\n" +
-                            "- Device: %s\n" +
-                            "- IP Address: %s\n" +
-                            "- Time: %s\n\n" +
-                            "If this wasn't you, please change your password immediately.",
-                    userAgent,ip, formatter.format(Instant.now())
-            );
-
-            emailService.sendMail(user.getEmail(), "Security Alert: New Device Login", emailBody);
+            emailService.sendAlertNewDeviceLogin(user.getEmail(), userAgent, ip, formatter.format(Instant.now()));
         }
 
         var jwtAccessToken = jwtService.generateAccessToken(user, deviceId);

@@ -43,7 +43,7 @@ public class VerificationServiceImpl implements VerificationService {
         redisService.set(AppConstants.PREFIX_VERIFICATION_OTP +userEntity.getEmail(), token, otpExpirationTime, TimeUnit.SECONDS);
         redisService.set(AppConstants.PREFIX_VERIFICATION_ATTEMPT+userEntity.getEmail(), AppConstants.INITIAL_ATTEMPT_VALUE, attemptVerificationWindow, TimeUnit.SECONDS);
 
-        emailService.sendMail(userEntity.getEmail(), "Verification Code", "Your verification code: " + token);
+        emailService.sendOtpMail(userEntity.getEmail(), token);
     }
 
 
@@ -70,7 +70,7 @@ public class VerificationServiceImpl implements VerificationService {
             redisService.setExpire(attemptKey, attemptVerificationWindow, TimeUnit.SECONDS);
         }
 
-        emailService.sendMail(email, "Verification Code", "Your verification code: " + newToken);
+        emailService.sendOtpMail(email, newToken);
     }
 
     @Override

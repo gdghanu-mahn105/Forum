@@ -30,6 +30,8 @@ public final class AppConstants {
     public static final int OTP_GENERATION_BOUND = 1000000; // Để random ra 6 số
     public static final int INITIAL_ATTEMPT_VALUE = 1;
 
+    public static final String DATE_TIME_FORMAT ="dd-MM-yyyy HH:mm:ss";
+
 
 
 }

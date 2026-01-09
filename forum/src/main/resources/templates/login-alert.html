@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Login Alert</title>
+    <style>
+        /* Tận dụng lại CSS của file OTP trước cho đồng bộ */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { background-color: #e74c3c; color: white; padding: 10px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .info-table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        .info-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .label { font-weight: bold; color: #555; }
+        .footer { text-align: center; font-size: 12px; color: #888; margin-top: 20px; }
+        .btn-check { display: inline-block; background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>New Login Detected</h2>
+    </div>
+    <div class="content">
+        <p>Hello,</p>
+        <p>We noticed a new login to your account. If this was you, you can ignore this email.</p>
+
+        <table class="info-table">
+            <tr>
+                <td class="label">Device:</td>
+                <td th:text="${deviceName}">Chrome on Mac OS</td>
+            </tr>
+            <tr>
+                <td class="label">IP Address:</td>
+                <td th:text="${ipAddress}">192.168.1.1</td>
+            </tr>
+            <tr>
+                <td class="label">Time:</td>
+                <td th:text="${loginTime}">10:00 AM</td>
+            </tr>
+        </table>
+
+        <p style="margin-top: 20px;">If you did not authorize this login, please change your password immediately.</p>
+    </div>
+    <div class="footer">
+        <p>&copy; 2026 FORUM. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>
