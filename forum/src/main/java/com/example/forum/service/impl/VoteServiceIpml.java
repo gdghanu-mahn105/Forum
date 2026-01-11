@@ -1,5 +1,6 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
 import com.example.forum.entity.Enum.EventType;
@@ -11,7 +12,9 @@ import com.example.forum.entity.Enum.VoteType;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.VoteRepository;
-import com.example.forum.security.SecurityService;
+import com.example.forum.utils.SecurityUtils;
+import com.example.forum.service.NotificationService;
+import com.example.forum.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -19,10 +22,10 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class VoteServiceIpml implements VoteService{
+public class VoteServiceIpml implements VoteService {
 
     private final PostRepository postRepository;
-    private final SecurityService securityService;
+    private final SecurityUtils securityService;
     private final VoteRepository voteRepository;
     private final NotificationService notificationService;
 
@@ -30,7 +33,7 @@ public class VoteServiceIpml implements VoteService{
     public PostVoteResponse votePost(Long postId, VoteType newVote) {
 
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
         UserEntity currentUser = securityService.getCurrentUser();
         Long currentUserId= currentUser.getUserId();
@@ -73,7 +76,7 @@ public class VoteServiceIpml implements VoteService{
     @Override
     public List<VoteProjection> findVoteOfPost(Long postId, VoteType voteType) {
         PostEntity post = postRepository.findByPostId(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         return voteRepository.findVotesOfPost(postId, voteType.name());
     }
 

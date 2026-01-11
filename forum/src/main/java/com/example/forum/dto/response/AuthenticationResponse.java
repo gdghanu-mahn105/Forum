@@ -10,6 +10,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthenticationResponse {
-    private String Token;
+    private String accessToken;
+
+    private String refreshToken;
+
+    private String deviceId;
+
     private UserSummaryDto user;
+
+    private boolean requiresTwoFactor;
+
+    private String message;
 }

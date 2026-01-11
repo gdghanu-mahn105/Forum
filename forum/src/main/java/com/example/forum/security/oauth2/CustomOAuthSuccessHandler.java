@@ -1,6 +1,6 @@
-package com.example.forum.auth;
+package com.example.forum.security.oauth2;
 
-import com.example.forum.security.JWTService;
+import com.example.forum.security.jwt.JWTService;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.UserRepository;
 import jakarta.servlet.ServletException;

@@ -1,5 +1,6 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.projection.NotificationProjection;
 import com.example.forum.dto.response.NotificationDto;
 import com.example.forum.dto.response.PagedResponse;
@@ -13,7 +14,8 @@ import com.example.forum.repository.EventNotificationRepository;
 import com.example.forum.repository.FollowRepository;
 import com.example.forum.repository.NotificationRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.security.SecurityService;
+import com.example.forum.utils.SecurityUtils;
+import com.example.forum.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,13 +26,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class NotificationServiceImpl implements NotificationService{
+public class NotificationServiceImpl implements NotificationService {
 
     private final EventNotificationRepository eventRepository;
     private final NotificationRepository notificationRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
-    private final SecurityService securityService;
+    private final SecurityUtils securityService;
 
     @Override
     public NotificationEvent createEvent(EventType eventType, UserEntity creator, String description, Long referenceId, String referenceType) {
@@ -134,7 +136,7 @@ public class NotificationServiceImpl implements NotificationService{
 
         UserEntity currentUser= securityService.getCurrentUser();
         if (currentUser == null) {
-            throw new NotLoggedInException("User not logged in");
+            throw new NotLoggedInException(MessageConstants.LOGIN_REQUIRED);
         }
         return notificationRepository.countByUserEntityUserIdAndIsReadFalse(currentUser.getUserId());
     }
@@ -150,7 +152,7 @@ public class NotificationServiceImpl implements NotificationService{
     public void markAllAsRead() {
         UserEntity currentUser= securityService.getCurrentUser();
         if (currentUser == null) {
-            throw new NotLoggedInException("User not logged in");
+            throw new NotLoggedInException(MessageConstants.LOGIN_REQUIRED);
         }
         List<Notification> readList =notificationRepository.findAllByUserEntityUserIdAndIsReadFalse(currentUser.getUserId())
                 .stream().peek(n-> n.setIsRead(true)).toList();
@@ -172,7 +174,7 @@ public class NotificationServiceImpl implements NotificationService{
 
     private Notification checkNotificationExist(Long id) {
         return notificationRepository.findByIdAndIsArchivedFalse(id)
-                .orElseThrow(()-> new ResourceNotFoundException("Notification not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.NOTIFICATION_NOT_FOUND));
     }
 
     private List<NotificationDto> mapToNotificationDto(Page<NotificationProjection> listPage){

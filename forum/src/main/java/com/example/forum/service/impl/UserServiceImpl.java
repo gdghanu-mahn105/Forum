@@ -1,13 +1,14 @@
-package com.example.forum.service;
+package com.example.forum.service.impl;
 
+import com.example.forum.constant.MessageConstants;
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
-import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserRepository;
+import com.example.forum.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +25,7 @@ import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Service
 @RequiredArgsConstructor
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -48,9 +49,9 @@ public class UserServiceImpl implements UserService{
     @Override
     public UserResponseDto getUserInfor(Long id) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
         if(user.getIsDeleted()) {
-            throw new ResourceNotFoundException("User not found!");
+            throw new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND);
         }
         return mapToUserResponseDto(user);
     }
@@ -93,7 +94,7 @@ public class UserServiceImpl implements UserService{
     @Override
     public UserResponseDto updateUser(Long id, UserUpdateRequest request) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
 
         if(request.getAvatarUrl()!= null && !request.getAvatarUrl().isBlank()){
             user.setAvatarUrl(request.getAvatarUrl());
@@ -110,7 +111,7 @@ public class UserServiceImpl implements UserService{
     @Override
     public void softDeleteUser(Long id) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(()-> new IllegalArgumentException("User not found!"));
+                .orElseThrow(()-> new IllegalArgumentException(MessageConstants.USER_NOT_FOUND));
         user.setIsDeleted(true);
         userRepository.save(user);
     }
@@ -118,16 +119,16 @@ public class UserServiceImpl implements UserService{
     @Override
     public void hardDeleteUser(Long id) {
         UserEntity user= userRepository.findById(id)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
         userRepository.delete(user);
     }
 
     @Override
     public void changePassword(Long id, ChangePasswordRequest request) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(()-> new ResourceNotFoundException("User not found!"));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
         if(!passwordEncoder.matches(request.getOldPassword(), user.getUserPassword())) {
-            throw new IllegalArgumentException("Old password is incorrect!");
+            throw new IllegalArgumentException(MessageConstants.OLD_PASSWORD_INCORRECT);
         }
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);

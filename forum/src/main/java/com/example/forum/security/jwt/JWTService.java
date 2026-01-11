@@ -1,7 +1,6 @@
-package com.example.forum.security;
+package com.example.forum.security.jwt;
 
 import com.example.forum.entity.UserEntity;
-import com.example.forum.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -22,13 +21,12 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class JWTService {
-    private final UserRepository userRepository;
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24;
-    Date expirationDate = new Date(System.currentTimeMillis() + EXPIRATION_TIME);
+    @Value("${jwt.access-token.expiration}")
+    private long accessTokenExpirationTime;
 
     public boolean isValidToken(String token , UserDetails userDetails) {
         final String userName = userDetails.getUsername();
@@ -42,6 +40,18 @@ public class JWTService {
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
+
+    public Date extractIssuedDate(String token){
+        return extractClaim(token, Claims::getIssuedAt);
+    }
+
+    public String extractDeviceId(String token) {
+        return extractClaim(token, claims -> claims.get("deviceId", String.class));
+    }
+    public Long extractUserId(String token){
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
+    }
+
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject); // get name from token
@@ -64,6 +74,12 @@ public class JWTService {
         return generateToken( new HashMap<>(), userDetails);
     }
 
+    public String generateAccessToken(UserEntity user, String deviceId){
+        Map<String, Object> extraclaims = new HashMap<>();
+        extraclaims.put("deviceId", deviceId);
+        return generateToken(extraclaims, user);
+    }
+
     private String generateToken(
             Map<String, Object> extraClaims,
             UserEntity userDetails
@@ -75,11 +91,13 @@ public class JWTService {
 
         extraClaims.put("userId", userDetails.getUserId());
         extraClaims.put("roles", roles);
+        Date now = new Date(System.currentTimeMillis());
+        Date expiryDate = new Date(now.getTime() + accessTokenExpirationTime);
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(expirationDate)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

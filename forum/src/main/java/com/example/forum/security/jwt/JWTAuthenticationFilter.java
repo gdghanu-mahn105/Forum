@@ -1,6 +1,7 @@
-package com.example.forum.security;
+package com.example.forum.security.jwt;
 
-
+import com.example.forum.constant.AppConstants;
+import com.example.forum.service.impl.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 @Component
@@ -24,17 +26,12 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
-
+    private final RedisService redisService;
     private static final List<String> PUBLIC_PATHS = List.of(
             "/v3/api-docs",
             "/swagger-ui",
             "/swagger-resources",
-            "/webjars",
-            "/forum/auth"
-//            "/forum/home",
-//            "/login/oauth2",
-//            "/forum/posts",
-//            "/forum/tags"
+            "/webjars"
     );
 
     @Override
@@ -49,7 +46,6 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         final String requestURI = request.getRequestURI();
 
-        // === BƯỚC 1: KIỂM TRA XEM REQUEST CÓ PHẢI LÀ PUBLIC KHÔNG ===
         boolean isPublicPath = PUBLIC_PATHS.stream().anyMatch(requestURI::startsWith);
 
         if (isPublicPath) {
@@ -64,12 +60,29 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         if(authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request,response);
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,"Invalid authorization header");
             return;
         }
 
+
         jwtToken = authHeader.substring(7);
+
+        if (redisService.hasKey(AppConstants.BLACKLIST_KEY +jwtToken)){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token has been revoked (Logout)");
+            return;
+        }
+
         userEmail= jwtService.extractUsername(jwtToken);
+        Long userId= jwtService.extractUserId(jwtToken);
+        Date iatDate= jwtService.extractIssuedDate(jwtToken);
+        String deviceId = jwtService.extractDeviceId(jwtToken);
+
+        if(deviceId!= null && isDeviceRevoked(deviceId, iatDate, userId)){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Device session revoked");
+            return;
+        }
+
 
         if(userEmail !=null && SecurityContextHolder.getContext().getAuthentication()==null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
@@ -88,5 +101,26 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request,response);
 
+    }
+
+    private boolean isDeviceRevoked(String deviceId, Date tokenIssuedAt, Long userId){
+
+        String userKey = AppConstants.REVOKED_USER_KEY + userId;
+        Object userRevokedAt = redisService.get(userKey);
+        if (userRevokedAt != null) {
+            if (tokenIssuedAt.getTime() < Long.parseLong(userRevokedAt.toString())) {
+                return true; // nếu token được tạo ra trước thời điẻm -> chặn
+            }
+        }
+
+
+        String redisKey = AppConstants.REVOKED_DEVICE_KEY + deviceId;
+        Object revokedAtValue = redisService.get(redisKey);
+
+        if (revokedAtValue != null) {
+            long revokedAt = Long.parseLong(revokedAtValue.toString());
+            return tokenIssuedAt.getTime() < revokedAt;
+        }
+        return false;
     }
 }
