@@ -40,5 +40,4 @@ public interface AuthenticationService {
 
     void revokeAllDevice(UserEntity currentUser);
 
-
 }

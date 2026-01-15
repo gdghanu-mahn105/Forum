@@ -1,4 +1,4 @@
-package com.example.forum.aspect;
+package com.example.forum.core.aspect;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;

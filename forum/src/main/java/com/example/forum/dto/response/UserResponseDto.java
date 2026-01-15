@@ -22,4 +22,7 @@ public class UserResponseDto {
     private Set<Role> roles;
     private Boolean isVerified;
     private LocalDateTime createdAt;
+    private Long followerCount;
+    private Long followingCount;
+    private Boolean isFollowing;
 }

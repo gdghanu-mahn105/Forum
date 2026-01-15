@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -37,12 +38,13 @@ public class CustomOAuthSuccessHandler implements AuthenticationSuccessHandler {
 
             UserEntity user = userRepository.findByProviderAndProviderId(provider, sub).orElseThrow(() -> new RuntimeException("User not found"));
 
-            String token = jwtService.generateToken(user);
+            String token = jwtService.generateAccessToken(user,null);
+            UUID refreshToken = UUID.randomUUID();
 
 //            response.setContentType("application/json");
 //            response.setCharacterEncoding("UTF-8");
 //            response.getWriter().write("{\"token\": \"" + token + "\"}");
-            String redirectUrl = "http://localhost:3000/oauth2/success?token=" + token;
+            String redirectUrl = "http://localhost:5173/oauth2/success?token=" + token + "&refreshToken=" + refreshToken;
             response.sendRedirect(redirectUrl);
         }
     }

@@ -35,7 +35,10 @@ public class NotificationEvent {
     @Column(nullable = true, columnDefinition = "TEXT")
     private String description;
 
-    private Long referenceId;       //postId, commentId,...
-    private String referenceType;
+    @Column(name = "target_url")
+    private String targetUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
 
 }

@@ -1,6 +1,6 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.projection.UserSummaryProjection;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserSummaryDto;
@@ -9,11 +9,11 @@ import com.example.forum.entity.Follow;
 import com.example.forum.entity.FollowId;
 import com.example.forum.entity.NotificationEvent;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.exception.BadRequestException;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.BadRequestException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.FollowRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.utils.SecurityUtils;
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.FollowService;
 import com.example.forum.service.NotificationService;
 import lombok.RequiredArgsConstructor;

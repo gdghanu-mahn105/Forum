@@ -1,4 +1,4 @@
-package com.example.forum.constant;
+package com.example.forum.common.constant;
 
 public class MessageConstants {
     private MessageConstants() {}

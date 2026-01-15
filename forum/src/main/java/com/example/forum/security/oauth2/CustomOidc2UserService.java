@@ -1,6 +1,6 @@
 package com.example.forum.security.oauth2;
 
-import com.example.forum.constant.AppConstants;
+import com.example.forum.common.constant.AppConstants;
 import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;

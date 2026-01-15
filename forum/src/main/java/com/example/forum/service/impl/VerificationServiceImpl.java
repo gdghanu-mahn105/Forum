@@ -1,10 +1,10 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.AppConstants;
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.AppConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.service.CacheService;
 import com.example.forum.service.EmailService;

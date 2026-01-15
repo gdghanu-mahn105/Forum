@@ -25,10 +25,10 @@ public class Notification {
     private UserEntity userEntity;
 
     @Column(name = "is_read", nullable = false)
-    private Boolean isRead;
+    private Boolean isRead=false;
 
     @Column(name = "is_archived", nullable = false)
-    private Boolean isArchived;
+    private Boolean isArchived=false;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -39,8 +39,6 @@ public class Notification {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.readAt = LocalDateTime.now();
-        this.isArchived = this.isArchived!= null ? this.isArchived : false;
     }
 
     @PreUpdate

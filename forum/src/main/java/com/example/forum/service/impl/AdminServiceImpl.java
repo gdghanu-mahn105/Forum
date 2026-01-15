@@ -1,7 +1,7 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.AppConstants;
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.AppConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.dto.request.RegisterRequest;
 import com.example.forum.entity.Role;

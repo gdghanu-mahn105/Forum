@@ -1,17 +1,17 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.AppConstants;
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.AppConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.response.TwoFactorResponse;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.exception.OtpVerificationException;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.OtpVerificationException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.BackupCodeRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.service.BackupCodeService;
 import com.example.forum.service.CacheService;
 import com.example.forum.service.TwoFactorService;
-import com.example.forum.utils.SecurityUtils;
+import com.example.forum.common.utils.SecurityUtils;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.springframework.beans.factory.annotation.Value;

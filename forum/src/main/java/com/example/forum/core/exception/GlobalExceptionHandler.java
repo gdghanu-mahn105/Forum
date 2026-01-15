@@ -1,4 +1,4 @@
-package com.example.forum.exception;
+package com.example.forum.core.exception;
 
 import com.example.forum.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;

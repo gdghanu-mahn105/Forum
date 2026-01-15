@@ -1,14 +1,14 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.request.CreatePostRequest;
 import com.example.forum.dto.request.UpdatePostRequest;
 import com.example.forum.dto.response.*;
 import com.example.forum.entity.*;
 import com.example.forum.entity.Enum.EventType;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.*;
-import com.example.forum.utils.SecurityUtils;
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.NotificationService;
 import com.example.forum.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -190,6 +190,28 @@ public class PostServiceImpl implements PostService {
         PostEntity post= postRepo.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
         return mapToPostResponseDto(post, null);
+    }
+
+    @Override
+    public PagedResponse<PostResponseDto> getPostByUser(Long userId, String keyword, Pageable pageable) {
+        if (keyword == null) {
+            keyword = "";
+        }
+        UserEntity owner = userRepo.findById(userId).orElseThrow(()->new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        UserEntity currentUser = securityService.getCurrentUserOrNull();
+
+        Page<PostEntity> postEntitiesPage = postRepo.findByCreatorUserIdAndIsArchivedFalseAndPostTitleContainingIgnoreCase(userId,keyword, pageable);
+        List<PostResponseDto> postListContent = postEntitiesPage.getContent().stream().map(postEntity -> mapToPostResponseDto(postEntity, currentUser)).toList();
+
+        return new PagedResponse<>(
+                postListContent,
+                postEntitiesPage.getNumber(),
+                postEntitiesPage.getSize(),
+                postEntitiesPage.getTotalElements(),
+                postEntitiesPage.getTotalPages(),
+                postEntitiesPage.isLast()
+        );
     }
 
     @Override
