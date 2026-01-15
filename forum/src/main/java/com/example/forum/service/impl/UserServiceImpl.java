@@ -1,12 +1,15 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.MessageConstants;
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.dto.request.ChangePasswordRequest;
 import com.example.forum.dto.request.UserUpdateRequest;
 import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.UserResponseDto;
+import com.example.forum.entity.FollowId;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.ResourceNotFoundException;
+import com.example.forum.repository.FollowRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FollowRepository followRepository;
+    private final SecurityUtils securityUtils;
 
     public UserResponseDto getCurrentUser(UserEntity userEntity) {
         return mapToUserResponseDto(userEntity);
@@ -47,13 +52,28 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponseDto getUserInfor(Long id) {
-        UserEntity user = userRepository.findById(id)
+    public UserResponseDto getUserInfor(Long targetUserid) {
+        UserEntity user = userRepository.findById(targetUserid)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND));
         if(user.getIsDeleted()) {
             throw new ResourceNotFoundException(MessageConstants.USER_NOT_FOUND);
         }
-        return mapToUserResponseDto(user);
+        int followerCount = followRepository.countFollowers(targetUserid);
+        int followingCount = followRepository.countFollowings(targetUserid);
+        boolean isFollowing = false;
+        UserEntity currentUser = securityUtils.getCurrentUserOrNull();
+
+        if(currentUser!= null && currentUser.getUserId() !=targetUserid ) {
+            FollowId checkId = new FollowId(currentUser.getUserId(),targetUserid);
+
+            isFollowing = followRepository.existsById(checkId);
+        }
+        UserResponseDto responseDto = mapToUserResponseDto(user);
+        responseDto.setFollowerCount((long)followerCount);
+        responseDto.setFollowingCount((long)followingCount);
+        responseDto.setIsFollowing(isFollowing);
+
+        return responseDto;
     }
 
 

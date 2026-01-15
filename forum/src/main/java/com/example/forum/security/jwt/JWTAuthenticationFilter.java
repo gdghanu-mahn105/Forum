@@ -1,6 +1,6 @@
 package com.example.forum.security.jwt;
 
-import com.example.forum.constant.AppConstants;
+import com.example.forum.common.constant.AppConstants;
 import com.example.forum.service.impl.RedisService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

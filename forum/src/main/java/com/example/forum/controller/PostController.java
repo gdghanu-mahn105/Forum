@@ -7,6 +7,9 @@ import com.example.forum.dto.response.PostResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -45,6 +48,21 @@ public class PostController {
                         true,
                         "get post by id successfully",
                         postService.getPost(postId)
+                )
+        );
+    }
+
+    @GetMapping()
+    public ResponseEntity<?> getPostByOwner(
+            @RequestParam(required = true) Long userId,
+            @RequestParam(defaultValue = "") String keyword,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ){
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "get post by user successfully",
+                        postService.getPostByUser(userId, keyword, pageable)
                 )
         );
     }

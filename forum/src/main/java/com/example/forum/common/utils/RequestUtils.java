@@ -1,4 +1,4 @@
-package com.example.forum.utils;
+package com.example.forum.common.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;

@@ -1,6 +1,6 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.AppConstants;
+import com.example.forum.common.constant.AppConstants;
 import com.example.forum.service.CacheService;
 import com.example.forum.service.LoginAttemptService;
 import lombok.RequiredArgsConstructor;

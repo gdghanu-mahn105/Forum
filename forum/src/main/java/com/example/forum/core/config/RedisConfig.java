@@ -1,4 +1,4 @@
-package com.example.forum.config;
+package com.example.forum.core.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

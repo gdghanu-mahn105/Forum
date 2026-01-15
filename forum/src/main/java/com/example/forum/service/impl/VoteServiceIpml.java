@@ -1,6 +1,6 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.projection.VoteProjection;
 import com.example.forum.dto.response.PostVoteResponse;
 import com.example.forum.entity.Enum.EventType;
@@ -9,10 +9,10 @@ import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.entity.Vote;
 import com.example.forum.entity.Enum.VoteType;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.VoteRepository;
-import com.example.forum.utils.SecurityUtils;
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.NotificationService;
 import com.example.forum.service.VoteService;
 import lombok.RequiredArgsConstructor;

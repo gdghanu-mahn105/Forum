@@ -1,4 +1,4 @@
-package com.example.forum.config;
+package com.example.forum.core.config;
 
 import com.example.forum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

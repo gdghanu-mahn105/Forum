@@ -1,6 +1,6 @@
 package com.example.forum.service.impl;
 
-import com.example.forum.constant.MessageConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.projection.CommentProjection;
 import com.example.forum.dto.request.CreateCommentRequest;
 import com.example.forum.dto.request.UpdateCommentRequest;
@@ -10,11 +10,11 @@ import com.example.forum.entity.Enum.EventType;
 import com.example.forum.entity.NotificationEvent;
 import com.example.forum.entity.PostEntity;
 import com.example.forum.entity.UserEntity;
-import com.example.forum.exception.ResourceNotFoundException;
+import com.example.forum.core.exception.ResourceNotFoundException;
 import com.example.forum.repository.CommentRepository;
 import com.example.forum.repository.PostRepository;
 import com.example.forum.repository.UserRepository;
-import com.example.forum.utils.SecurityUtils;
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.CommentService;
 import com.example.forum.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +70,10 @@ public class CommentServiceImpl implements CommentService {
         }
         comment.setCommentPath(newPath);
         commentRepository.save(comment);
+        String content = request.getContent();
+        String preview = content.length() <= 20
+                ? content
+                : content.substring(0, 20);
 
         // Notification
         if(request.getParentPath() == null
@@ -78,7 +82,7 @@ public class CommentServiceImpl implements CommentService {
             NotificationEvent notificationEvent = notificationService.createEvent(
                     EventType.NEW_COMMENT,
                     currentUser,
-                    request.getContent().substring(0, 20),
+                    preview,
                     comment.getCommentId(),
                     "COMMENT"
             );
@@ -87,7 +91,7 @@ public class CommentServiceImpl implements CommentService {
             NotificationEvent notificationEvent = notificationService.createEvent(
                     EventType.NEW_REPLY,
                     currentUser,
-                    request.getContent().substring(0, 20),
+                    preview,
                     comment.getCommentId(),
                     "COMMENT"
             );

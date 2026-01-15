@@ -1,4 +1,4 @@
-package com.example.forum.exception;
+package com.example.forum.core.exception;
 
 public class ResourceNotFoundException extends RuntimeException {
 
