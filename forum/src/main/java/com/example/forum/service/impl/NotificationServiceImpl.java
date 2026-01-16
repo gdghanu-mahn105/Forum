@@ -54,8 +54,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .eventType(eventType)
                 .dateNotice(LocalDateTime.now())
                 .description(description)
-                .referenceId(referenceId)
-                .referenceType(referenceType)
+//                .referenceId(referenceId)
+//                .referenceType(referenceType)
                 .build();
 
 

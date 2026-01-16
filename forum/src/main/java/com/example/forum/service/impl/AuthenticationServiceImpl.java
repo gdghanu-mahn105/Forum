@@ -24,15 +24,19 @@ import com.example.forum.repository.UserRepository;
 import com.example.forum.security.jwt.TokenUtils;
 import com.example.forum.service.*;
 import com.example.forum.common.utils.RequestUtils;
+import jakarta.mail.Multipart;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -45,6 +49,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserRepository userRepository;
@@ -57,6 +62,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final BackupCodeService backupCodeService;
     private final EmailService emailService;
     private final CacheService cacheService;
+    private final CloudinaryService cloudinaryService;
 
     private final AuthenticationManager authManager;
     private final PasswordEncoder passwordEncoder;
@@ -73,7 +79,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             .withZone(ZoneId.systemDefault());
 
     @Override
-    public UserSummaryDto register(RegisterRequest request) {
+    public UserSummaryDto register(RegisterRequest request, MultipartFile avatarFile) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyExistsException(MessageConstants.EMAIL_ALREADY_EXISTS);
@@ -86,12 +92,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Role userRole = roleRepository.findByName(AppConstants.ROLE_USER)
                 .orElseThrow(()-> new RuntimeException(MessageConstants.ROLE_NOT_FOUND));
 
+        String finalAvatarUrl =AppConstants.DEFAULT_AVATAR_URL;
+        if(avatarFile != null && !avatarFile.isEmpty()){
+            try{
+                finalAvatarUrl = cloudinaryService.uploadImage(avatarFile);
+            } catch (Exception e) {
+                log.info("");
+                throw new RuntimeException(MessageConstants.UPLOAD_FAILED);
+            }
+        }
 
         var user= UserEntity.builder()
                 .userName(request.getUserName())
                 .email(request.getEmail())
                 .userPassword(passwordEncoder.encode(request.getPassword()))
-                .avatarUrl("https://cdn-icons-png.flaticon.com/512/9815/9815472.png") // default avatar url
+                .avatarUrl(finalAvatarUrl)
                 .roles(Set.of(userRole))
                 .isVerified(false)
                 .build();

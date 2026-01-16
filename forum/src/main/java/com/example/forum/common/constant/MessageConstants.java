@@ -72,5 +72,12 @@ public class MessageConstants {
     // email
     public static final String SUBJECT_OTP_MAIL = "Your verification code (OTP)";
     public static final String SUBJECT_NEW_DEVICE_LOGIN = "Security Alert: New Login Detected";
+
+    // file
+    public static final String UPLOAD_FAILED = "Image upload failed. Please try again later.";
+    public static final String FILE_TOO_LARGE = "File size exceeds the maximum limit of 5MB.";
+    public static final String FILE_EXTENSION_NOT_SUPPORTED = "Unsupported file format. Only jpg, jpeg, png, webp, and gif are allowed.";
+    public static final String FILE_NOT_VALID_IMAGE = "Invalid file content or unsupported format. Please select a valid image.";
+    public static final String FILE_EMPTY = "File cannot be empty.";
 }
 
