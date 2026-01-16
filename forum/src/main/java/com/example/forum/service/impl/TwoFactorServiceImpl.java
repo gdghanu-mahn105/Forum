@@ -123,4 +123,10 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         backupCodeRepository.deleteByUserEntityUserId(user.getUserId());
     }
 
+    @Override
+    public boolean is2faEnable() {
+        UserEntity user = securityService.getCurrentUser();
+        return user.isTwoFactorEnabled();
+    }
+
 }
