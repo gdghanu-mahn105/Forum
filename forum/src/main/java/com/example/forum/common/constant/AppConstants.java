@@ -39,6 +39,7 @@ public final class AppConstants {
     public static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
     public static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
     public static final String CLOUDINARY_FOLDER_AVATARS = "forum_avatars";
+    public static final int MAX_BATCH_SIZE =5;
 
     // avatalURl
     public static final String DEFAULT_AVATAR_URL ="https://cdn-icons-png.flaticon.com/512/9815/9815472.png";

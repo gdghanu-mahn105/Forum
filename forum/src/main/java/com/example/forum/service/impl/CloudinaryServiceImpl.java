@@ -11,9 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +49,22 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             log.error("Cloudinary upload error: {}", e.getMessage());
             throw new RuntimeException(MessageConstants.UPLOAD_FAILED, e);
         }
+    }
+
+    @Override
+    public List<String> uploadImages(List<MultipartFile> files) {
+        if(files == null && files.isEmpty()){
+            throw new RuntimeException(MessageConstants.FILE_EMPTY);
+        }
+        if(files.size()>AppConstants.MAX_BATCH_SIZE){
+            throw new RuntimeException(MessageConstants.MAX_BATCH_SIZE_EXCEEDED);
+        }
+
+        log.info("Starting batch upload for {} files...", files.size());
+
+        return files.parallelStream()
+                .map(this::uploadImage) // Tái sử dụng logic upload đơn lẻ
+                .collect(Collectors.toList());
     }
 
     private void validateFile(MultipartFile file){

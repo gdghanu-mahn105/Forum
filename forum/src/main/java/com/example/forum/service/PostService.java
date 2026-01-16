@@ -6,10 +6,13 @@ import com.example.forum.dto.response.PagedResponse;
 import com.example.forum.dto.response.PostResponseDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 public interface PostService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    PostResponseDto createPost(CreatePostRequest request);
+    PostResponseDto createPost(CreatePostRequest request, List<MultipartFile> fileList);
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     PostResponseDto getPost(Long postId);
@@ -40,6 +43,9 @@ public interface PostService {
     @PreAuthorize("hasAnyRole('ADMIN')")
     void hardDeletePost(Long id);
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     void removeMediaFromPost(Long postId, Long mediaId);
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    PostResponseDto addMediaToPost(Long postId, List<MultipartFile> files);
 }

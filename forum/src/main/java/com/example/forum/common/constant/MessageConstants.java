@@ -79,5 +79,9 @@ public class MessageConstants {
     public static final String FILE_EXTENSION_NOT_SUPPORTED = "Unsupported file format. Only jpg, jpeg, png, webp, and gif are allowed.";
     public static final String FILE_NOT_VALID_IMAGE = "Invalid file content or unsupported format. Please select a valid image.";
     public static final String FILE_EMPTY = "File cannot be empty.";
+    public static final String MAX_BATCH_SIZE_EXCEEDED = "You can only upload up to " + AppConstants.MAX_BATCH_SIZE + " images at a time.";
+
+    // media
+    public static final String MEDIA_NOT_FOUND="Media not found";
 }
 

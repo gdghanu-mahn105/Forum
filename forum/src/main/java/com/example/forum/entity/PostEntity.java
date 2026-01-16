@@ -65,9 +65,6 @@ public class PostEntity {
     @Column(name = "status")
     private PostStatus status = PostStatus.DRAFT;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private Set<MediaEntity> mediaFiles = new HashSet<>();
-
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
