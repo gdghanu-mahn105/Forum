@@ -106,14 +106,14 @@ public class PostServiceImpl implements PostService {
 
         UserEntity currentUser = securityService.getCurrentUser();
         if (!post.getCreator().getUserId().equals(currentUser.getUserId())) {
-            throw new AccessDeniedException("Bạn không có quyền xóa ảnh này");
+            throw new AccessDeniedException(MessageConstants.NO_PERMISSION_TO_DELETE_MEDIA);
         }
 
         MediaEntity mediaEntity = mediaRepository.findById(mediaId)
                         .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.MEDIA_NOT_FOUND));
 
         if (!mediaEntity.getPost().getPostId().equals(postId)) {
-            throw new IllegalArgumentException("Ảnh này không thuộc về bài viết đang chọn");
+            throw new IllegalArgumentException(MessageConstants.MEDIA_NOT_BELONG_TO_POST);
         }
 
         mediaRepository.delete(mediaEntity);

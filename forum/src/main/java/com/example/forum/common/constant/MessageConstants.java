@@ -83,5 +83,7 @@ public class MessageConstants {
 
     // media
     public static final String MEDIA_NOT_FOUND="Media not found";
+    public static final String MEDIA_NOT_BELONG_TO_POST = "Media does not belong to the selected post.";
+    public static final String NO_PERMISSION_TO_DELETE_MEDIA = "You do not have permission to delete this image.";
 }
 
