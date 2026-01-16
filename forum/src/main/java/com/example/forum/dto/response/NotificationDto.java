@@ -17,8 +17,7 @@ public class NotificationDto {
     private Long eventId;
     private String eventName;
     private String eventType;
-    private Long referenceId;
-    private String referenceType;
+    private String targetUrl;
     private LocalDateTime dateNotice;
 
     private Long createdById;

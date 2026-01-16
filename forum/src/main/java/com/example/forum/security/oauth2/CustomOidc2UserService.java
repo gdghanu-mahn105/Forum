@@ -1,6 +1,7 @@
 package com.example.forum.security.oauth2;
 
 import com.example.forum.common.constant.AppConstants;
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.entity.Role;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.repository.RoleRepository;
@@ -38,7 +39,7 @@ public class CustomOidc2UserService extends OidcUserService {
         // UserOauth login, save user information
         if(optionalUser.isEmpty()) {
             Role userRole = roleRepo.findByName(AppConstants.ROLE_USER)
-                    .orElseThrow(()-> new RuntimeException("role not found"));
+                    .orElseThrow(()-> new RuntimeException(MessageConstants.ROLE_NOT_FOUND));
 
             UserEntity newUser = new UserEntity();
             newUser.setUserName(name);

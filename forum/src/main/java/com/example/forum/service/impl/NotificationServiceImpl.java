@@ -16,6 +16,7 @@ import com.example.forum.repository.NotificationRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.NotificationService;
+import com.example.forum.service.SseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,7 +33,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+
     private final SecurityUtils securityService;
+    private final SseService sseService;
 
     @Override
     public NotificationEvent createEvent(EventType eventType, UserEntity creator, String description, Long referenceId, String referenceType) {
@@ -46,6 +49,23 @@ public class NotificationServiceImpl implements NotificationService {
             case NEW_FOLLOWER -> creatorName +" have followed you";
         };
 
+        String targetUrl = "";
+        switch (eventType) {
+            case NEW_POST:
+            case NEW_VOTE:
+            case NEW_COMMENT:
+            case NEW_REPLY:
+                targetUrl = "/posts/" + referenceId;
+                break;
+
+            case NEW_FOLLOWER:
+                targetUrl = "/users/" + creator.getUserId();
+                break;
+
+            default:
+                targetUrl = "/home";
+        }
+
 
 
         NotificationEvent notificationEvent= NotificationEvent.builder()
@@ -53,13 +73,24 @@ public class NotificationServiceImpl implements NotificationService {
                 .createdBy(creator)
                 .eventType(eventType)
                 .dateNotice(LocalDateTime.now())
+                .targetUrl(targetUrl)
                 .description(description)
-                .referenceId(referenceId)
-                .referenceType(referenceType)
                 .build();
 
+        NotificationEvent savedEvent= eventRepository.save(notificationEvent);
 
-        return eventRepository.save(notificationEvent);
+        if (eventType == EventType.NEW_POST) {
+            this.notifyFollowers(savedEvent);
+        }
+
+        if (eventType == EventType.NEW_FOLLOWER) {
+            UserEntity receiver = userRepository.findById(referenceId).orElse(null);
+            this.notifySpecificUser(receiver, savedEvent);
+        }
+
+
+
+        return savedEvent;
     }
 
     @Override
@@ -88,7 +119,12 @@ public class NotificationServiceImpl implements NotificationService {
                                     .isArchived(false)
                                     .build()
                             ).toList();
-            notificationRepository.saveAll(newNotificationList);
+            List<Notification> savedNoti = notificationRepository.saveAll(newNotificationList);
+
+            for (Notification noti : savedNoti){
+                NotificationDto notificationDto = mapSingleToDto(noti);
+                sseService.sendRealTimeEvent(noti.getUserEntity().getUserId(), notificationDto);
+            }
         }
     }
 
@@ -103,7 +139,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .isArchived(false)
                 .build();
 
-        notificationRepository.save(notification);
+        Notification savedNoti = notificationRepository.save(notification);
+
+        NotificationDto dto = mapSingleToDto(savedNoti);
+        sseService.sendRealTimeEvent(receiver.getUserId(), dto);
     }
 
     @Override
@@ -111,14 +150,12 @@ public class NotificationServiceImpl implements NotificationService {
         if (keyword == null) {
             keyword = "";
         }
-        if(isRead==null){
-            isRead=false;
-        }
+
         Pageable pageable = PageRequest.of(page, size);
 
         Long currentUserId= securityService.getCurrentUser().getUserId();
 
-        Page<NotificationProjection> notiProjectionListPage= notificationRepository.findUnreadNotificationsByUserIdAndReadStatus(currentUserId,isRead, keyword, pageable);
+        Page<NotificationProjection> notiProjectionListPage= notificationRepository.findNotificationsByUserIdAndReadStatus(currentUserId,isRead, keyword, pageable);
         List<NotificationDto> notificationDtoList = mapToNotificationDto(notiProjectionListPage);
 
         return new PagedResponse<>(
@@ -185,13 +222,29 @@ public class NotificationServiceImpl implements NotificationService {
                         .eventId(p.getEventId())
                         .eventName(p.getEventName())
                         .eventType(p.getEventType())
-                        .referenceId(p.getReferenceId())
-                        .referenceType(p.getReferenceType())
                         .dateNotice(p.getDateNotice())
                         .createdById(p.getCreatedById())
+                        .targetUrl(p.getTargetUrl())
                         .createdByName(p.getCreatedByName())
                         .createdByAvatar(p.getCreatedByAvatar())
                         .build())
                 .toList();
+    }
+    private NotificationDto mapSingleToDto(Notification n) {
+        NotificationEvent e = n.getNotificationEvent();
+        UserEntity creator = e.getCreatedBy();
+
+        return NotificationDto.builder()
+                .notificationId(n.getId())
+                .isRead(n.getIsRead())
+                .eventId(e.getEventId())
+                .eventName(e.getEventName())
+                .eventType(e.getEventType().toString())
+                .dateNotice(e.getDateNotice())
+                .createdById(creator.getUserId())
+                .targetUrl(e.getTargetUrl())
+                .createdByName(creator.displayUsername())
+                .createdByAvatar(creator.getAvatarUrl())
+                .build();
     }
 }
