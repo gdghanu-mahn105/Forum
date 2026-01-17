@@ -6,31 +6,34 @@ import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.dto.response.PostResponseDto;
 import com.example.forum.entity.UserEntity;
 import com.example.forum.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 
 @RestController
 @RequestMapping("/forum/posts")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
-//cloud name: dbz9lqdui
-// upload preset: uploadpresetname
 public class PostController {
 
     private final PostService postService;
 
-    @PostMapping("/create")
+    @PostMapping(value ="/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createPost (
-            @RequestBody CreatePostRequest request
+            @Valid @RequestPart(value = "data") CreatePostRequest request,
+            @RequestPart(value = "files", required = false)List<MultipartFile> multipartFileList
             ) {
-        PostResponseDto postResponse = postService.createPost(request);
+        PostResponseDto postResponse = postService.createPost(request, multipartFileList);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ApiResponse<>(
                         true,
@@ -114,6 +117,34 @@ public class PostController {
                 new ApiResponse<>(
                         true,
                         "Post is permanently deleted",
+                        null
+                )
+        );
+    }
+
+    @PostMapping(value = "/{postId}/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> addMediaToPost(
+            @PathVariable Long postId,
+            @RequestPart("files") List<MultipartFile> files
+    ) {
+        PostResponseDto updatedPost = postService.addMediaToPost(postId, files);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Added media successfully", updatedPost)
+        );
+    }
+
+    @DeleteMapping("/{postId}/media/{mediaId}")
+    public ResponseEntity<?> removeMediaFromPost(
+            @PathVariable Long postId,
+            @PathVariable Long mediaId
+    ) {
+        postService.removeMediaFromPost(postId, mediaId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Remove media successfully",
                         null
                 )
         );

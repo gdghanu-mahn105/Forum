@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/forum/tags")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
 public class TagController {
 

@@ -1,5 +1,6 @@
 package com.example.forum.dto.response;
 
+import com.example.forum.entity.MediaEntity;
 import lombok.Builder;
 import lombok.Data;
 
@@ -14,7 +15,7 @@ public class PostResponseDto {
     private String postTitle;
     private String postContent;
     private String thumbnailUrl;
-    private List<MediaResponse> mediaEntityList;
+    private List<MediaEntity> mediaEntityList;
     private Long upvotes;
     private Long downvotes;
     private Long countedViews;

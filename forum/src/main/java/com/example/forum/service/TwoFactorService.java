@@ -17,4 +17,6 @@ public interface TwoFactorService {
     List<String> verifyOtp(String email, int otp);
 
     void disable2fa(UserEntity user, String password);
+
+    boolean is2faEnable();
 }

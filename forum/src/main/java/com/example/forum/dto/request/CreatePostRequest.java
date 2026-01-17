@@ -28,6 +28,4 @@ public class CreatePostRequest {
     private String postContent;
 
     private String thumbnailUrl;
-
-//    private List<MediaRequest> mediaRequestList;
 }

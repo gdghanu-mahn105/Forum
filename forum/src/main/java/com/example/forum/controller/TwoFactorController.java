@@ -57,4 +57,15 @@ public class TwoFactorController {
                                 "2FA disabled successfully",
                                 null));
     }
+
+    @GetMapping("/isEnable")
+    public ResponseEntity<?> is2faEnable(){
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Get 2fa status",
+                        twoFactorService.is2faEnable()
+                )
+        );
+    }
 }
