@@ -1,10 +1,14 @@
 package com.example.forum.controller;
 
+import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.dto.response.ApiResponse;
 import com.example.forum.service.NotificationService;
+import com.example.forum.service.SseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/forum/user")
@@ -12,13 +16,24 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final SseService sseService;
+    private final SecurityUtils securityUtils;
+
+    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribe(){
+        Long currentUserId = securityUtils.getCurrentUserId();
+        return sseService.subscribe(currentUserId);
+    }
+
+
+
 
     @GetMapping("/me/notification")
     ResponseEntity<?> getNotificationWithReadStatus(
             @RequestParam(defaultValue = "0",required = false) int page,
             @RequestParam(defaultValue = "10",required = false) int size,
             @RequestParam(defaultValue = "", required = false) String keyword,
-            @RequestParam(defaultValue = "false", required = false) Boolean isRead
+            @RequestParam(required = false) Boolean isRead
     ) {
         return ResponseEntity.ok(
                 new ApiResponse<>(

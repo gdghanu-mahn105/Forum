@@ -76,7 +76,9 @@ public class JWTService {
 
     public String generateAccessToken(UserEntity user, String deviceId){
         Map<String, Object> extraclaims = new HashMap<>();
-        extraclaims.put("deviceId", deviceId);
+        if (deviceId != null) {
+            extraclaims.put("deviceId", deviceId);
+        }
         return generateToken(extraclaims, user);
     }
 
