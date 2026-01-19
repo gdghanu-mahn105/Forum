@@ -24,7 +24,6 @@ import com.example.forum.repository.UserRepository;
 import com.example.forum.security.jwt.TokenUtils;
 import com.example.forum.service.*;
 import com.example.forum.common.utils.RequestUtils;
-import jakarta.mail.Multipart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -95,7 +93,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String finalAvatarUrl =AppConstants.DEFAULT_AVATAR_URL;
         if(avatarFile != null && !avatarFile.isEmpty()){
             try{
-                finalAvatarUrl = cloudinaryService.uploadImage(avatarFile);
+//                finalAvatarUrl = cloudinaryService.uploadImage(avatarFile);
             } catch (Exception e) {
                 log.info("");
                 throw new RuntimeException(MessageConstants.UPLOAD_FAILED);

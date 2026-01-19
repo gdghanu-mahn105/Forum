@@ -1,5 +1,6 @@
 package com.example.forum.core.exception;
 
+import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.Map;
@@ -103,6 +105,16 @@ public class GlobalExceptionHandler {
                 .body( new ApiResponse<>(
                         false,
                         e.getMessage(),
+                        null
+                ));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> handleMaxUploadSizeException(MaxUploadSizeExceededException maxUploadSizeExceededException){
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ApiResponse<>(
+                        false,
+                        MessageConstants.UPLOAD_LIMIT_EXCEEDED,
                         null
                 ));
     }

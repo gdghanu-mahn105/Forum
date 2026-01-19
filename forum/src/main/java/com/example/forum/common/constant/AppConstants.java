@@ -41,7 +41,7 @@ public final class AppConstants {
     public static final String CLOUDINARY_FOLDER_AVATARS = "forum_avatars";
     public static final int MAX_BATCH_SIZE =5;
 
-    // avatalURl
+    // avatarURl
     public static final String DEFAULT_AVATAR_URL ="https://cdn-icons-png.flaticon.com/512/9815/9815472.png";
 
 

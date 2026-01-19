@@ -85,5 +85,6 @@ public class MessageConstants {
     public static final String MEDIA_NOT_FOUND="Media not found";
     public static final String MEDIA_NOT_BELONG_TO_POST = "Media does not belong to the selected post.";
     public static final String NO_PERMISSION_TO_DELETE_MEDIA = "You do not have permission to delete this image.";
+    public static final String UPLOAD_LIMIT_EXCEEDED = "Upload failed. File size exceeds 5MB or total request exceeds 25MB.";
 }
 

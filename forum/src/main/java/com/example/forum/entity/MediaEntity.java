@@ -30,4 +30,6 @@ public class MediaEntity {
     @JoinColumn(name = "post_id")
     @JsonIgnore
     private PostEntity post;
+
+    private String publicId;
 }

@@ -23,10 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,16 +72,9 @@ public class PostServiceImpl implements PostService {
         postRepo.save(post);
 
         if(files !=null && !files.isEmpty()){
-            List<String> imageUrls = cloudinaryService.uploadImages(files);
+            List<Map> mediaInfo = cloudinaryService.uploadImages(files);
 
-            Set<MediaEntity> mediaEntitySet = imageUrls.stream().map(mediaUrl ->{
-                MediaEntity mediaEntity = new MediaEntity();
-                mediaEntity.setPost(post);
-                mediaEntity.setMediaType(MediaType.IMAGE);
-                mediaEntity.setUrl(mediaUrl);
-                return  mediaEntity;
-            }).collect(Collectors.toSet());
-            mediaRepository.saveAll(mediaEntitySet);
+            saveMediaEntity(mediaInfo, post);
         }
 
         NotificationEvent newNotificationEvent = notificationService.createEvent(
@@ -116,7 +106,30 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException(MessageConstants.MEDIA_NOT_BELONG_TO_POST);
         }
 
+        String publicIdToDelete = mediaEntity.getPublicId();
+
         mediaRepository.delete(mediaEntity);
+
+        if (publicIdToDelete != null) {
+            cloudinaryService.deleteImage(publicIdToDelete);
+        }
+    }
+
+    public void saveMediaEntity(List<Map> mediaList, PostEntity post){
+        Set<MediaEntity> mediaEntitySet = mediaList.stream().map(media ->{
+            String resourceType = media.get("resource_type").toString();
+            MediaEntity mediaEntity = new MediaEntity();
+            mediaEntity.setPost(post);
+            mediaEntity.setMediaType(resourceType.equals("image") ? MediaType.IMAGE : MediaType.VIDEO);
+            mediaEntity.setPublicId(media.get("public_id").toString());
+            mediaEntity.setUrl(media.get("secure_url").toString());
+            if (media.get("bytes") != null) {
+                long sizeInBytes = Long.parseLong(media.get("bytes").toString());
+                mediaEntity.setSize(sizeInBytes);
+            }
+            return  mediaEntity;
+        }).collect(Collectors.toSet());
+        mediaRepository.saveAll(mediaEntitySet);
     }
 
     @Override
@@ -134,17 +147,9 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException(MessageConstants.FILE_EMPTY);
         }
 
-        List<String> imageUrls = cloudinaryService.uploadImages(files);
+        List<Map> mediaInfo = cloudinaryService.uploadImages(files);
 
-        Set<MediaEntity> newMediaSet = imageUrls.stream().map(url -> {
-            MediaEntity media = new MediaEntity();
-            media.setPost(post);
-            media.setMediaType(MediaType.IMAGE);
-            media.setUrl(url);
-            return media;
-        }).collect(Collectors.toSet());
-
-        mediaRepository.saveAll(newMediaSet);
+        saveMediaEntity(mediaInfo, post);
 
         return mapToPostResponseDto(post, currentUser);
     }
