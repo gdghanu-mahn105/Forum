@@ -32,4 +32,6 @@ public class MediaEntity {
     private PostEntity post;
 
     private String publicId;
+
+    private String format;
 }

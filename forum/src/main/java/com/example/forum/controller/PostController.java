@@ -28,12 +28,11 @@ public class PostController {
 
     private final PostService postService;
 
-    @PostMapping(value ="/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value ="/create")
     public ResponseEntity<?> createPost (
-            @Valid @RequestPart(value = "data") CreatePostRequest request,
-            @RequestPart(value = "files", required = false)List<MultipartFile> multipartFileList
+            @Valid @RequestBody CreatePostRequest request
             ) {
-        PostResponseDto postResponse = postService.createPost(request, multipartFileList);
+        PostResponseDto postResponse = postService.createPost(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ApiResponse<>(
                         true,

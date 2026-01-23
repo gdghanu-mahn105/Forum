@@ -56,7 +56,8 @@ public class SecurityConfig {
                                 "/forum/auth/**"
                                 , "/forum/home/**"
                                 ,"/login/oauth2/**",
-                                "/oauth2/**")
+                                "/oauth2/**",
+                                "/forum/upload/avatar")
                         .permitAll()
                         .requestMatchers("/forum/admin/**").hasRole("ADMIN")
                         .requestMatchers("/forum/user/**", "/forum/auth/me").hasAnyRole("USER", "ADMIN")

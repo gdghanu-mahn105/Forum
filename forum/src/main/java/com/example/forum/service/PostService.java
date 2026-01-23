@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface PostService {
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    PostResponseDto createPost(CreatePostRequest request, List<MultipartFile> fileList);
+    PostResponseDto createPost(CreatePostRequest request);
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     PostResponseDto getPost(Long postId);

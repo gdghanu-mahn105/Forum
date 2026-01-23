@@ -5,9 +5,11 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.forum.common.constant.AppConstants;
 import com.example.forum.common.constant.MessageConstants;
 import com.example.forum.core.exception.BadRequestException;
+import com.example.forum.dto.response.UploadResponseDto;
 import com.example.forum.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,9 +27,14 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
     private final Cloudinary cloudinary;
 
+    @Value("${app.upload.max-file-size}")
+    private long maxFileSize;
+
+    @Value("${app.upload.max-batch-size}")
+    private long maxBatchSize;
 
     @Override
-    public Map uploadImage(MultipartFile file) {
+    public UploadResponseDto uploadImage(MultipartFile file) {
         try{
             validateFile(file);
             String originalFileName = file.getOriginalFilename();
@@ -48,7 +55,19 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
             log.info("Image uploaded successfully: {}", uniqueFileName);
 
-            return uploadResult;
+            String secureUrl = (String) uploadResult.get("secure_url");
+            String publicId = (String) uploadResult.get("public_id");
+            String format = (String) uploadResult.get("format");
+            String resource_type =(String) uploadResult.get("resource_type");
+            Long bytes =(Long.parseLong(uploadResult.get("bytes").toString()));
+
+            return UploadResponseDto.builder()
+                    .id(publicId)
+                    .url(secureUrl)
+                    .format(format)
+                    .resourceType(resource_type)
+                    .bytes(bytes)
+                    .build();
         } catch (IOException e){
 
             log.error("Cloudinary upload error: {}", e.getMessage());
@@ -57,11 +76,11 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     }
 
     @Override
-    public List<Map> uploadImages(List<MultipartFile> files) {
+    public List<UploadResponseDto> uploadImages(List<MultipartFile> files) {
         if(files == null || files.isEmpty()){
             throw new BadRequestException(MessageConstants.FILE_EMPTY);
         }
-        if(files.size()>AppConstants.MAX_BATCH_SIZE){
+        if(files.size()>maxFileSize){
             throw new BadRequestException(MessageConstants.MAX_BATCH_SIZE_EXCEEDED);
         }
 
@@ -89,7 +108,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             throw new BadRequestException(MessageConstants.FILE_EMPTY);
         }
 
-        if (file.getSize() > AppConstants.MAX_FILE_SIZE) { // 5MB
+        if (file.getSize() > maxFileSize) { // 5MB
             throw new BadRequestException(MessageConstants.FILE_TOO_LARGE);
         }
 

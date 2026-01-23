@@ -51,15 +51,14 @@ public class AuthenticationController {
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> register (
-            @Valid @RequestPart("data") RegisterRequest request,
-            @RequestPart(value = "avatar", required = false)MultipartFile avatarFIle
+            @Valid @RequestBody RegisterRequest request
             ){
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(
                         true,
                         "Successfully created, you need to verify your email",
-                        authenticationService.register(request, avatarFIle)
+                        authenticationService.register(request)
         ));
     }
 

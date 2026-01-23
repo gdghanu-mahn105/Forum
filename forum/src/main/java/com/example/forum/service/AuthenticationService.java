@@ -15,8 +15,7 @@ import java.util.List;
 
 public interface AuthenticationService {
 
-    UserSummaryDto register(RegisterRequest request, MultipartFile multipartFile);
-
+    UserSummaryDto register(RegisterRequest request);
     VerifyOtpResponse verifyCode(String email, String code);
 
     AuthenticationResponse authenticate(AuthenticationRequest request);

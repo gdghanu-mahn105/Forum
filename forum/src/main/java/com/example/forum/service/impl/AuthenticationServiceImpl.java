@@ -32,7 +32,6 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -77,7 +76,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             .withZone(ZoneId.systemDefault());
 
     @Override
-    public UserSummaryDto register(RegisterRequest request, MultipartFile avatarFile) {
+    public UserSummaryDto register(RegisterRequest request) {
 
         if(userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyExistsException(MessageConstants.EMAIL_ALREADY_EXISTS);
@@ -91,13 +90,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(()-> new RuntimeException(MessageConstants.ROLE_NOT_FOUND));
 
         String finalAvatarUrl =AppConstants.DEFAULT_AVATAR_URL;
-        if(avatarFile != null && !avatarFile.isEmpty()){
-            try{
-//                finalAvatarUrl = cloudinaryService.uploadImage(avatarFile);
-            } catch (Exception e) {
-                log.info("");
-                throw new RuntimeException(MessageConstants.UPLOAD_FAILED);
-            }
+        if(request.getAvatarUrl() != null && !request.getAvatarUrl().isEmpty()){
+            finalAvatarUrl = request.getAvatarUrl();
         }
 
         var user= UserEntity.builder()

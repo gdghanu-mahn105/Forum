@@ -44,7 +44,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponseDto createPost(CreatePostRequest request, List<MultipartFile> files) {
+    public PostResponseDto createPost(CreatePostRequest request) {
 
         UserEntity currentUser = securityService.getCurrentUser();  // dùng service
         Long userId = currentUser.getUserId();
@@ -61,7 +61,6 @@ public class PostServiceImpl implements PostService {
                 .postTitle(request.getPostTitle())
                 .tags(tags)
                 .postContent(request.getPostContent())
-                .thumbnailUrl(request.getThumbnailUrl())
                 .upvotes(0L)
                 .downvotes(0L)
                 .countedViews(0L)
@@ -71,10 +70,9 @@ public class PostServiceImpl implements PostService {
 
         postRepo.save(post);
 
-        if(files !=null && !files.isEmpty()){
-            List<Map> mediaInfo = cloudinaryService.uploadImages(files);
+        if(request.getMediaFiles() !=null && !request.getMediaFiles().isEmpty()){
 
-            saveMediaEntity(mediaInfo, post);
+            saveMediaEntity(request.getMediaFiles(), post);
         }
 
         NotificationEvent newNotificationEvent = notificationService.createEvent(
@@ -115,20 +113,24 @@ public class PostServiceImpl implements PostService {
         }
     }
 
-    public void saveMediaEntity(List<Map> mediaList, PostEntity post){
+    public void saveMediaEntity(List<UploadResponseDto> mediaList, PostEntity post){
+        if (mediaList == null || mediaList.isEmpty()) return;
         Set<MediaEntity> mediaEntitySet = mediaList.stream().map(media ->{
-            String resourceType = media.get("resource_type").toString();
             MediaEntity mediaEntity = new MediaEntity();
             mediaEntity.setPost(post);
-            mediaEntity.setMediaType(resourceType.equals("image") ? MediaType.IMAGE : MediaType.VIDEO);
-            mediaEntity.setPublicId(media.get("public_id").toString());
-            mediaEntity.setUrl(media.get("secure_url").toString());
-            if (media.get("bytes") != null) {
-                long sizeInBytes = Long.parseLong(media.get("bytes").toString());
-                mediaEntity.setSize(sizeInBytes);
+            mediaEntity.setPublicId(media.getId());
+            mediaEntity.setUrl(media.getUrl());
+            mediaEntity.setFormat(media.getFormat());
+            mediaEntity.setSize(media.getBytes());
+
+            if ("video".equalsIgnoreCase(media.getResourceType())) {
+                mediaEntity.setMediaType(MediaType.VIDEO);
+            } else {
+                mediaEntity.setMediaType(MediaType.IMAGE);
             }
             return  mediaEntity;
         }).collect(Collectors.toSet());
+
         mediaRepository.saveAll(mediaEntitySet);
     }
 
@@ -147,7 +149,7 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException(MessageConstants.FILE_EMPTY);
         }
 
-        List<Map> mediaInfo = cloudinaryService.uploadImages(files);
+        List<UploadResponseDto> mediaInfo = cloudinaryService.uploadImages(files);
 
         saveMediaEntity(mediaInfo, post);
 
