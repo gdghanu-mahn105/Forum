@@ -18,6 +18,7 @@ import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.NotificationService;
 import com.example.forum.service.SseService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
     private final EventNotificationRepository eventRepository;
@@ -49,24 +51,7 @@ public class NotificationServiceImpl implements NotificationService {
             case NEW_FOLLOWER -> creatorName +" have followed you";
         };
 
-        String targetUrl = "";
-        switch (eventType) {
-            case NEW_POST:
-            case NEW_VOTE:
-            case NEW_COMMENT:
-            case NEW_REPLY:
-                targetUrl = "/posts/" + referenceId;
-                break;
-
-            case NEW_FOLLOWER:
-                targetUrl = "/users/" + creator.getUserId();
-                break;
-
-            default:
-                targetUrl = "/home";
-        }
-
-
+        String targetUrl = createTargetUrl(eventType, referenceId, creator.getUserId());
 
         NotificationEvent notificationEvent= NotificationEvent.builder()
                 .eventName(eventName)
@@ -79,19 +64,12 @@ public class NotificationServiceImpl implements NotificationService {
 
         NotificationEvent savedEvent= eventRepository.save(notificationEvent);
 
-        if (eventType == EventType.NEW_POST) {
-            this.notifyFollowers(savedEvent);
-        }
-
-        if (eventType == EventType.NEW_FOLLOWER) {
-            UserEntity receiver = userRepository.findById(referenceId).orElse(null);
-            this.notifySpecificUser(receiver, savedEvent);
-        }
-
+        dispatchNotification(savedEvent, referenceId);
 
 
         return savedEvent;
     }
+
 
     @Override
     public void notifyFollowers(NotificationEvent event) {
@@ -99,16 +77,6 @@ public class NotificationServiceImpl implements NotificationService {
             Long creatorId = event.getCreatedBy().getUserId();
             List<Long> followerIdList = followRepository.findFollowerUserIdByFollowingUserId(creatorId);
             if(followerIdList.isEmpty()) return;
-//            List<Notification> newNotificationList= new ArrayList<>();
-//            for( Long id : followerIdList) {
-//                Notification newNotice = Notification.builder()
-//                        .notificationEvent(event)
-//                        .userEntity(event.getCreatedBy())
-//                        .isRead(false)
-//                        .isArchived(false)
-//                        .build();
-//                newNotificationList.add(newNotice);
-//            }
 
             List<UserEntity> followers = userRepository.findAllById(followerIdList);
             List<Notification> newNotificationList= followers.stream()
@@ -247,4 +215,42 @@ public class NotificationServiceImpl implements NotificationService {
                 .createdByAvatar(creator.getAvatarUrl())
                 .build();
     }
+
+    private String createTargetUrl(EventType eventType, Long referenceId, Long creatorId){
+        String targetUrl="";
+        switch (eventType) {
+            case NEW_POST:
+            case NEW_VOTE:
+            case NEW_COMMENT:
+            case NEW_REPLY:
+                targetUrl = "/posts/" + referenceId;
+                break;
+
+            case NEW_FOLLOWER:
+                targetUrl = "/users/" + creatorId;
+                break;
+
+            default:
+                targetUrl = "/home";
+        }
+        return targetUrl;
+    }
+
+
+    private void dispatchNotification(NotificationEvent event, Long referenceId){
+        switch (event.getEventType()) {
+            case NEW_POST:
+                this.notifyFollowers(event);
+                break;
+
+            case NEW_FOLLOWER:
+                userRepository.findById(referenceId).ifPresent(receiver ->
+                        this.notifySpecificUser(receiver, event)
+                );
+                break;
+            default:
+                log.warn("Unhandled event type: {}", event.getEventType());
+        }
+    }
+
 }
