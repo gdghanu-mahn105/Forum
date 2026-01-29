@@ -16,8 +16,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class SseServiceImpl implements SseService {
 
-    private final SseEmitter sseEmitter;
-
     @Value("${app.sse.timeout}")
     private Long emitterTimeout;
 
