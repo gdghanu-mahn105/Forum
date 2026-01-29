@@ -41,7 +41,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
-        final String jwtToken;
+        String jwtToken = null;
         final String userEmail;
 
         final String requestURI = request.getRequestURI();
@@ -58,13 +58,22 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if(authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request,response);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwtToken = authHeader.substring(7);
+        }
+
+        if (jwtToken == null) {
+            String paramToken = request.getParameter("token");
+            if (paramToken != null && !paramToken.isEmpty()) {
+                jwtToken = paramToken;
+            }
+        }
+
+        if (jwtToken == null) {
+            filterChain.doFilter(request, response);
             return;
         }
 
-
-        jwtToken = authHeader.substring(7);
 
         if (redisService.hasKey(AppConstants.BLACKLIST_KEY +jwtToken)){
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

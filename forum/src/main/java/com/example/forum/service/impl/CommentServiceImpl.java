@@ -23,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -39,6 +40,7 @@ public class CommentServiceImpl implements CommentService {
     private final NotificationService notificationService;
 
     @Override
+    @Transactional
     public CommentResponseDto createComment(Long postId, CreateCommentRequest request) {
 
         PostEntity post= postRepository.findByPostId(postId)
@@ -69,13 +71,16 @@ public class CommentServiceImpl implements CommentService {
             newPath = request.getParentPath() + request.getParentId() +"/";
         }
         comment.setCommentPath(newPath);
-        commentRepository.save(comment);
+        CommentEntity savedComment = commentRepository.save(comment);
+
         String content = request.getContent();
         String preview = content.length() <= 20
                 ? content
                 : content.substring(0, 20);
 
         // Notification
+        UserEntity postOwner = savedComment.getPostEntity().getCreator();
+
         if(request.getParentPath() == null
                 || request.getParentPath().trim().isEmpty()
                 || request.getParentId()==0) {
@@ -83,22 +88,29 @@ public class CommentServiceImpl implements CommentService {
                     EventType.NEW_COMMENT,
                     currentUser,
                     preview,
-                    comment.getCommentId(),
-                    "COMMENT"
+                    comment.getPostEntity().getPostId(),
+                    "POST"
             );
-            notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
+            if (!postOwner.getUserId().equals(currentUser.getUserId())) {
+                notificationService.notifySpecificUser(postOwner, notificationEvent);
+            }
         } else {
             NotificationEvent notificationEvent = notificationService.createEvent(
                     EventType.NEW_REPLY,
                     currentUser,
                     preview,
-                    comment.getCommentId(),
-                    "COMMENT"
+                    comment.getPostEntity().getPostId(),
+                    "POST"
             );
             CommentEntity parentComment = commentRepository.findById(request.getParentId())
                     .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.COMMENT_NOT_FOUND));
-            notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
-            notificationService.notifySpecificUser(parentComment.getUserEntity(), notificationEvent);
+            if(!postOwner.getUserId().equals(currentUser.getUserId())){
+                notificationService.notifySpecificUser(post.getCreator(), notificationEvent);
+            }
+            if(!notificationEvent.getCreatedBy().getUserId().equals(parentComment.getUserEntity().getUserId())){
+                notificationService.notifySpecificUser(parentComment.getUserEntity(), notificationEvent);
+            }
+
 
         }
 
