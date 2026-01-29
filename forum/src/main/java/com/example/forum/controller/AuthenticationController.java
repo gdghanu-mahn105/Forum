@@ -49,7 +49,7 @@ public class AuthenticationController {
         return ResponseEntity.ok(new ApiResponse<>(true, "User fetched", userDto));
     }
 
-    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/register")
     public ResponseEntity<?> register (
             @Valid @RequestBody RegisterRequest request
             ){
