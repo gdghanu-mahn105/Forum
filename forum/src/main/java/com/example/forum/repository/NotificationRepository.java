@@ -23,8 +23,7 @@ public interface NotificationRepository extends JpaRepository<Notification,Long>
                 e.event_id AS eventId,
                 e.event_name AS eventName,
                 e.event_type AS eventType,
-                e.reference_id AS referenceId,
-                e.reference_type AS referenceType,
+                e.target_url as targetUrl,
                 e.date_notice AS dateNotice,
 
                 u.user_id AS createdById,
@@ -34,7 +33,7 @@ public interface NotificationRepository extends JpaRepository<Notification,Long>
             JOIN notification_event e ON n.event_id = e.event_id
             JOIN users u ON e.created_by = u.user_id
             WHERE n.user_id = :userId
-              AND n.is_read = :isRead
+              AND (:isRead IS NULL OR n.is_read = :isRead)
               AND e.event_name like concat ('%', :keyword,'%')
               AND n.is_archived = false
             ORDER BY e.date_notice DESC
@@ -44,13 +43,13 @@ public interface NotificationRepository extends JpaRepository<Notification,Long>
             FROM notification n
             JOIN notification_event e ON n.event_id = e.event_id
             WHERE n.user_id = :userId
-              AND n.is_read = :isRead
+              AND (:isRead IS NULL OR n.is_read = :isRead)
               AND n.is_archived = false
             """,
             nativeQuery = true)
-    Page<NotificationProjection> findUnreadNotificationsByUserIdAndReadStatus(
+    Page<NotificationProjection> findNotificationsByUserIdAndReadStatus(
             @Param("userId") Long userId,
-            @Param("isRead") boolean isRead,
+            @Param("isRead") Boolean isRead,
             @Param("keyword") String keyword,
             Pageable pageable
     );

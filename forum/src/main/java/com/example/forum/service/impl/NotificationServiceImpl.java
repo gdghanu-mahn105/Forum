@@ -16,7 +16,9 @@ import com.example.forum.repository.NotificationRepository;
 import com.example.forum.repository.UserRepository;
 import com.example.forum.common.utils.SecurityUtils;
 import com.example.forum.service.NotificationService;
+import com.example.forum.service.SseService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,13 +28,16 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
     private final EventNotificationRepository eventRepository;
     private final NotificationRepository notificationRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+
     private final SecurityUtils securityService;
+    private final SseService sseService;
 
     @Override
     public NotificationEvent createEvent(EventType eventType, UserEntity creator, String description, Long referenceId, String referenceType) {
@@ -46,21 +51,25 @@ public class NotificationServiceImpl implements NotificationService {
             case NEW_FOLLOWER -> creatorName +" have followed you";
         };
 
-
+        String targetUrl = createTargetUrl(eventType, referenceId, creator.getUserId());
 
         NotificationEvent notificationEvent= NotificationEvent.builder()
                 .eventName(eventName)
                 .createdBy(creator)
                 .eventType(eventType)
                 .dateNotice(LocalDateTime.now())
+                .targetUrl(targetUrl)
                 .description(description)
-                .referenceId(referenceId)
-                .referenceType(referenceType)
                 .build();
 
+        NotificationEvent savedEvent= eventRepository.save(notificationEvent);
 
-        return eventRepository.save(notificationEvent);
+        dispatchNotification(savedEvent, referenceId);
+
+
+        return savedEvent;
     }
+
 
     @Override
     public void notifyFollowers(NotificationEvent event) {
@@ -68,16 +77,6 @@ public class NotificationServiceImpl implements NotificationService {
             Long creatorId = event.getCreatedBy().getUserId();
             List<Long> followerIdList = followRepository.findFollowerUserIdByFollowingUserId(creatorId);
             if(followerIdList.isEmpty()) return;
-//            List<Notification> newNotificationList= new ArrayList<>();
-//            for( Long id : followerIdList) {
-//                Notification newNotice = Notification.builder()
-//                        .notificationEvent(event)
-//                        .userEntity(event.getCreatedBy())
-//                        .isRead(false)
-//                        .isArchived(false)
-//                        .build();
-//                newNotificationList.add(newNotice);
-//            }
 
             List<UserEntity> followers = userRepository.findAllById(followerIdList);
             List<Notification> newNotificationList= followers.stream()
@@ -88,7 +87,12 @@ public class NotificationServiceImpl implements NotificationService {
                                     .isArchived(false)
                                     .build()
                             ).toList();
-            notificationRepository.saveAll(newNotificationList);
+            List<Notification> savedNoti = notificationRepository.saveAll(newNotificationList);
+
+            for (Notification noti : savedNoti){
+                NotificationDto notificationDto = mapSingleToDto(noti);
+                sseService.sendRealTimeEvent(noti.getUserEntity().getUserId(), notificationDto);
+            }
         }
     }
 
@@ -103,7 +107,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .isArchived(false)
                 .build();
 
-        notificationRepository.save(notification);
+        Notification savedNoti = notificationRepository.save(notification);
+
+        NotificationDto dto = mapSingleToDto(savedNoti);
+        sseService.sendRealTimeEvent(receiver.getUserId(), dto);
     }
 
     @Override
@@ -111,14 +118,12 @@ public class NotificationServiceImpl implements NotificationService {
         if (keyword == null) {
             keyword = "";
         }
-        if(isRead==null){
-            isRead=false;
-        }
+
         Pageable pageable = PageRequest.of(page, size);
 
         Long currentUserId= securityService.getCurrentUser().getUserId();
 
-        Page<NotificationProjection> notiProjectionListPage= notificationRepository.findUnreadNotificationsByUserIdAndReadStatus(currentUserId,isRead, keyword, pageable);
+        Page<NotificationProjection> notiProjectionListPage= notificationRepository.findNotificationsByUserIdAndReadStatus(currentUserId,isRead, keyword, pageable);
         List<NotificationDto> notificationDtoList = mapToNotificationDto(notiProjectionListPage);
 
         return new PagedResponse<>(
@@ -185,13 +190,67 @@ public class NotificationServiceImpl implements NotificationService {
                         .eventId(p.getEventId())
                         .eventName(p.getEventName())
                         .eventType(p.getEventType())
-                        .referenceId(p.getReferenceId())
-                        .referenceType(p.getReferenceType())
                         .dateNotice(p.getDateNotice())
                         .createdById(p.getCreatedById())
+                        .targetUrl(p.getTargetUrl())
                         .createdByName(p.getCreatedByName())
                         .createdByAvatar(p.getCreatedByAvatar())
                         .build())
                 .toList();
     }
+    private NotificationDto mapSingleToDto(Notification n) {
+        NotificationEvent e = n.getNotificationEvent();
+        UserEntity creator = e.getCreatedBy();
+
+        return NotificationDto.builder()
+                .notificationId(n.getId())
+                .isRead(n.getIsRead())
+                .eventId(e.getEventId())
+                .eventName(e.getEventName())
+                .eventType(e.getEventType().toString())
+                .dateNotice(e.getDateNotice())
+                .createdById(creator.getUserId())
+                .targetUrl(e.getTargetUrl())
+                .createdByName(creator.displayUsername())
+                .createdByAvatar(creator.getAvatarUrl())
+                .build();
+    }
+
+    private String createTargetUrl(EventType eventType, Long referenceId, Long creatorId){
+        String targetUrl="";
+        switch (eventType) {
+            case NEW_POST:
+            case NEW_VOTE:
+            case NEW_COMMENT:
+            case NEW_REPLY:
+                targetUrl = "/posts/" + referenceId;
+                break;
+
+            case NEW_FOLLOWER:
+                targetUrl = "/users/" + creatorId;
+                break;
+
+            default:
+                targetUrl = "/home";
+        }
+        return targetUrl;
+    }
+
+
+    private void dispatchNotification(NotificationEvent event, Long referenceId){
+        switch (event.getEventType()) {
+            case NEW_POST:
+                this.notifyFollowers(event);
+                break;
+
+            case NEW_FOLLOWER:
+                userRepository.findById(referenceId).ifPresent(receiver ->
+                        this.notifySpecificUser(receiver, event)
+                );
+                break;
+            default:
+                log.warn("Unhandled event type: {}", event.getEventType());
+        }
+    }
+
 }
