@@ -1,5 +1,7 @@
 package com.example.forum.common.constant;
 
+import java.util.Set;
+
 public final class AppConstants {
 
     private AppConstants(){}
@@ -31,6 +33,14 @@ public final class AppConstants {
     public static final int INITIAL_ATTEMPT_VALUE = 1;
 
     public static final String DATE_TIME_FORMAT ="dd-MM-yyyy HH:mm:ss";
+
+    // file validate
+    public static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp", "gif");
+    public static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
+    public static final String CLOUDINARY_FOLDER_AVATARS = "forum_avatars";
+
+    // avatarURl
+    public static final String DEFAULT_AVATAR_URL ="https://cdn-icons-png.flaticon.com/512/9815/9815472.png";
 
 
 

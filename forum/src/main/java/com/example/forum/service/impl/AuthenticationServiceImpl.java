@@ -25,6 +25,7 @@ import com.example.forum.security.jwt.TokenUtils;
 import com.example.forum.service.*;
 import com.example.forum.common.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
@@ -45,6 +46,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserRepository userRepository;
@@ -57,6 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final BackupCodeService backupCodeService;
     private final EmailService emailService;
     private final CacheService cacheService;
+    private final CloudinaryService cloudinaryService;
 
     private final AuthenticationManager authManager;
     private final PasswordEncoder passwordEncoder;
@@ -86,12 +89,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Role userRole = roleRepository.findByName(AppConstants.ROLE_USER)
                 .orElseThrow(()-> new RuntimeException(MessageConstants.ROLE_NOT_FOUND));
 
+        String finalAvatarUrl =AppConstants.DEFAULT_AVATAR_URL;
+        if(request.getAvatarUrl() != null && !request.getAvatarUrl().isEmpty()){
+            finalAvatarUrl = request.getAvatarUrl();
+        }
 
         var user= UserEntity.builder()
                 .userName(request.getUserName())
                 .email(request.getEmail())
                 .userPassword(passwordEncoder.encode(request.getPassword()))
-                .avatarUrl("https://cdn-icons-png.flaticon.com/512/9815/9815472.png") // default avatar url
+                .avatarUrl(finalAvatarUrl)
                 .roles(Set.of(userRole))
                 .isVerified(false)
                 .build();

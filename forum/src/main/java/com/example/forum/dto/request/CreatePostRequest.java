@@ -1,5 +1,6 @@
 package com.example.forum.dto.request;
 
+import com.example.forum.dto.response.UploadResponseDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -27,7 +28,5 @@ public class CreatePostRequest {
     @NotBlank(message = "Post content cannot be blank")
     private String postContent;
 
-    private String thumbnailUrl;
-
-//    private List<MediaRequest> mediaRequestList;
+    private List<UploadResponseDto> mediaFiles;
 }

@@ -9,13 +9,13 @@ import com.example.forum.dto.response.UserDeviceResponse;
 import com.example.forum.dto.response.UserSummaryDto;
 import com.example.forum.dto.response.VerifyOtpResponse;
 import com.example.forum.entity.UserEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface AuthenticationService {
 
     UserSummaryDto register(RegisterRequest request);
-
     VerifyOtpResponse verifyCode(String email, String code);
 
     AuthenticationResponse authenticate(AuthenticationRequest request);

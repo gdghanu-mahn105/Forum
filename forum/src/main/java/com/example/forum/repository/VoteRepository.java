@@ -14,11 +14,10 @@ import java.util.Optional;
 
 @Repository
 public interface VoteRepository extends JpaRepository<Vote, Long> {
-    static Optional<Vote> findByUserEntityAndPostEntity(UserEntity currentUser, PostEntity post){
-        return Optional.empty();
-    }
+    Optional<Vote> findByUserEntityAndPostEntity(UserEntity currentUser, PostEntity post);
 
     Optional<Vote> findByUserEntityUserIdAndPostEntityPostId(Long userId, Long postId);
+
     long countByPostEntityPostIdAndVoteType (Long postId, VoteType voteType);
 
     @Query(value = """

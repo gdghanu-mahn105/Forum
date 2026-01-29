@@ -1,7 +1,12 @@
 package com.example.forum.common.constant;
 
+import org.springframework.beans.factory.annotation.Value;
+
 public class MessageConstants {
     private MessageConstants() {}
+
+    @Value("${app.upload.max-batch-size}")
+    private static long maxBatchSize;
 
     // authentication and authorization
     public static final String LOGIN_REQUIRED ="Action can be done when logged in";
@@ -72,5 +77,19 @@ public class MessageConstants {
     // email
     public static final String SUBJECT_OTP_MAIL = "Your verification code (OTP)";
     public static final String SUBJECT_NEW_DEVICE_LOGIN = "Security Alert: New Login Detected";
+
+    // file
+    public static final String UPLOAD_FAILED = "Image upload failed. Please try again later.";
+    public static final String FILE_TOO_LARGE = "File size exceeds the maximum limit of 5MB.";
+    public static final String FILE_EXTENSION_NOT_SUPPORTED = "Unsupported file format. Only jpg, jpeg, png, webp, and gif are allowed.";
+    public static final String FILE_NOT_VALID_IMAGE = "Invalid file content or unsupported format. Please select a valid image.";
+    public static final String FILE_EMPTY = "File cannot be empty.";
+    public static final String MAX_BATCH_SIZE_EXCEEDED = "You can only upload up to " + maxBatchSize + " images at a time.";
+
+    // media
+    public static final String MEDIA_NOT_FOUND="Media not found";
+    public static final String MEDIA_NOT_BELONG_TO_POST = "Media does not belong to the selected post.";
+    public static final String NO_PERMISSION_TO_DELETE_MEDIA = "You do not have permission to delete this image.";
+    public static final String UPLOAD_LIMIT_EXCEEDED = "Upload failed. File size exceeds 5MB or total request exceeds 25MB.";
 }
 

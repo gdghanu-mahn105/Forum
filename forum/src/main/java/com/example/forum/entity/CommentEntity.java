@@ -31,7 +31,7 @@ public class CommentEntity {
 //    @Column()
 //    private Integer likes;
 
-    @Column(name = "comment_content", columnDefinition = "text")
+    @Column(name = "comment_content", columnDefinition = "TEXT")
     private String commentContent;
 
     @Column(name="comment_path")

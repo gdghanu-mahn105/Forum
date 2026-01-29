@@ -7,8 +7,10 @@ import com.example.forum.dto.response.*;
 import com.example.forum.entity.*;
 import com.example.forum.entity.Enum.EventType;
 import com.example.forum.core.exception.ResourceNotFoundException;
+import com.example.forum.entity.Enum.MediaType;
 import com.example.forum.repository.*;
 import com.example.forum.common.utils.SecurityUtils;
+import com.example.forum.service.CloudinaryService;
 import com.example.forum.service.NotificationService;
 import com.example.forum.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +20,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,12 +34,16 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepo;
     private final CategoryRepository categoryRepo;
     private final TagRepository tagRepo;
-    private final SecurityUtils securityService;
-    private final NotificationService notificationService;
     private final CommentRepository commentRepository;
     private final VoteRepository voteRepository;
+    private final MediaRepository mediaRepository;
+
+    private final SecurityUtils securityService;
+    private final NotificationService notificationService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
+    @Transactional
     public PostResponseDto createPost(CreatePostRequest request) {
 
         UserEntity currentUser = securityService.getCurrentUser();  // dùng service
@@ -55,7 +61,6 @@ public class PostServiceImpl implements PostService {
                 .postTitle(request.getPostTitle())
                 .tags(tags)
                 .postContent(request.getPostContent())
-                .thumbnailUrl(request.getThumbnailUrl())
                 .upvotes(0L)
                 .downvotes(0L)
                 .countedViews(0L)
@@ -63,20 +68,12 @@ public class PostServiceImpl implements PostService {
                 .build();
 
 
-//        if(request.getMediaRequestList() != null && !request.getMediaRequestList().isEmpty()) {
-//            Set<MediaEntity> mediaEntitySet = request.getMediaRequestList()
-//                    .stream()
-//                    .map(mediaRequest ->{
-//                        MediaEntity mediaEntity = new MediaEntity();
-//                        mediaEntity.setMediaType(mediaRequest.getType());
-//                        mediaEntity.setUrl(mediaRequest.getUrl());
-//                        mediaEntity.setSize(mediaRequest.getSize());
-//                        mediaEntity.setPost(post);
-//                        return mediaEntity;
-//                    }).collect(Collectors.toSet());
-//            post.setMediaFiles(mediaEntitySet);
-//        }
         postRepo.save(post);
+
+        if(request.getMediaFiles() !=null && !request.getMediaFiles().isEmpty()){
+
+            saveMediaEntity(request.getMediaFiles(), post);
+        }
 
         NotificationEvent newNotificationEvent = notificationService.createEvent(
                 EventType.NEW_POST,
@@ -87,8 +84,7 @@ public class PostServiceImpl implements PostService {
 
         notificationService.notifyFollowers(newNotificationEvent);
 
-
-        return mapToPostResponseDto(post, null);
+        return mapToPostResponseDto(post, currentUser);
     }
 
     @Override
@@ -96,29 +92,89 @@ public class PostServiceImpl implements PostService {
         PostEntity post = postRepo.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
 
-        post.getMediaFiles().removeIf(media -> media.getId().equals(mediaId));
-        // orphanRemoval = true => Hibernate sẽ xóa khỏi DB
-        postRepo.save(post);
+        UserEntity currentUser = securityService.getCurrentUser();
+        if (!post.getCreator().getUserId().equals(currentUser.getUserId())) {
+            throw new AccessDeniedException(MessageConstants.NO_PERMISSION_TO_DELETE_MEDIA);
+        }
+
+        MediaEntity mediaEntity = mediaRepository.findById(mediaId)
+                        .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.MEDIA_NOT_FOUND));
+
+        if (!mediaEntity.getPost().getPostId().equals(postId)) {
+            throw new IllegalArgumentException(MessageConstants.MEDIA_NOT_BELONG_TO_POST);
+        }
+
+        String publicIdToDelete = mediaEntity.getPublicId();
+
+        mediaRepository.delete(mediaEntity);
+
+        if (publicIdToDelete != null) {
+            cloudinaryService.deleteImage(publicIdToDelete);
+        }
+    }
+
+    public void saveMediaEntity(List<UploadResponseDto> mediaList, PostEntity post){
+        if (mediaList == null || mediaList.isEmpty()) return;
+        Set<MediaEntity> mediaEntitySet = mediaList.stream().map(media ->{
+            MediaEntity mediaEntity = new MediaEntity();
+            mediaEntity.setPost(post);
+            mediaEntity.setPublicId(media.getId());
+            mediaEntity.setUrl(media.getUrl());
+            mediaEntity.setFormat(media.getFormat());
+            mediaEntity.setSize(media.getBytes());
+
+            if ("video".equalsIgnoreCase(media.getResourceType())) {
+                mediaEntity.setMediaType(MediaType.VIDEO);
+            } else {
+                mediaEntity.setMediaType(MediaType.IMAGE);
+            }
+            return  mediaEntity;
+        }).collect(Collectors.toSet());
+
+        mediaRepository.saveAll(mediaEntitySet);
+    }
+
+    @Override
+    @Transactional
+    public PostResponseDto addMediaToPost(Long postId, List<MultipartFile> files) {
+        PostEntity post = postRepo.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
+
+        UserEntity currentUser = securityService.getCurrentUser();
+        if (!post.getCreator().getUserId().equals(currentUser.getUserId())) {
+            throw new AccessDeniedException(MessageConstants.NO_PERMISSION_EDIT_POST);
+        }
+
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException(MessageConstants.FILE_EMPTY);
+        }
+
+        List<UploadResponseDto> mediaInfo = cloudinaryService.uploadImages(files);
+
+        saveMediaEntity(mediaInfo, post);
+
+        return mapToPostResponseDto(post, currentUser);
     }
 
     private PostResponseDto mapToPostResponseDto(PostEntity post, UserEntity currentUser) {
 
         Long commentCount = commentRepository.countByPostEntity(post);
 
+        List<MediaEntity> mediaEntityList = mediaRepository.findByPostPostId(post.getPostId());
+
         Integer timeRead =0;
-        if(post.getPostContent()!=null && !post.getPostContent().isEmpty()){
+        if (post.getPostContent() != null && !post.getPostContent().isEmpty()) {
             int words = post.getPostContent().split("\\s+").length;
-            timeRead=(int) Math.ceil(words/150); // 200words/minute
+            timeRead = (int) Math.ceil((double) words / 150);
         }
-        // temporary false, null because of no auth
+
         String isVoted = null;
         Boolean isSaved = false;
 
         if (currentUser != null) {
-            // 3. Logic kiểm tra isVoted
-            Optional<Vote> voteOpt = VoteRepository.findByUserEntityAndPostEntity(currentUser, post);
+            Optional<Vote> voteOpt = voteRepository.findByUserEntityUserIdAndPostEntityPostId(currentUser.getUserId(), post.getPostId());
             if (voteOpt.isPresent()) {
-                isVoted = voteOpt.get().getVoteType().toString(); // "UPVOTE" hoặc "DOWNVOTE"
+                isVoted = voteOpt.get().getVoteType().toString();
             }
 
             // 4. Logic kiểm tra isSaved (TODO: Bạn cần tạo SavePostRepository)
@@ -133,15 +189,7 @@ public class PostServiceImpl implements PostService {
                 .upvotes(post.getUpvotes())
                 .downvotes(post.getDownvotes())
                 .countedViews(post.getCountedViews())
-//                .mediaEntityList(post.getMediaFiles()
-//                        .stream().map(media -> MediaResponse.builder()
-//                                .id(media.getId())
-//                                .url(media.getUrl())
-//                                .type(media.getMediaType())
-//                                .size(media.getSize())
-//                                .build())
-//                        .collect(Collectors.toList())
-//                )
+                .mediaEntityList( mediaEntityList)
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .creatorName(post.getCreator().displayUsername())
@@ -187,9 +235,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostResponseDto getPost(Long postId) {
+        UserEntity currentUser = securityService.getCurrentUser();
         PostEntity post= postRepo.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException(MessageConstants.POST_NOT_FOUND));
-        return mapToPostResponseDto(post, null);
+        return mapToPostResponseDto(post, currentUser);
     }
 
     @Override
@@ -270,23 +319,9 @@ public class PostServiceImpl implements PostService {
             post.setTags(tags);
         }
 
-        if (request.getMediaRequestList() != null) {
-//            post.getMediaFiles().clear();
-
-            Set<MediaEntity> newMediaSet = request.getMediaRequestList().stream()
-                    .map(mediaRequest -> {
-                        MediaEntity media = new MediaEntity();
-                        media.setUrl(mediaRequest.getUrl());
-                        media.setMediaType(mediaRequest.getType());
-                        media.setPost(post);
-                        return media;
-                    }).collect(Collectors.toSet());
-
-            post.getMediaFiles().addAll(newMediaSet);
-        }
         postRepo.save(post);
 
-        return mapToPostResponseDto(post, null);
+        return mapToPostResponseDto(post, currentUser);
     }
 
 

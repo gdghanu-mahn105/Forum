@@ -153,4 +153,14 @@ public class UserServiceImpl implements UserService {
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+
+    @Override
+    public UserResponseDto updateProfilePicture() {
+        return null;
+    }
+
+    @Override
+    public UserResponseDto updateUserInfo() {
+        return null;
+    }
 }
